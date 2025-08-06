@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerador de Orçamentos PRO</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- jsPDF e jsPDF-AutoTable -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+
+    <!-- Ícones (Lucide Icons) -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type=number] { -moz-appearance: textfield; }
+        .tab-button.active {
+            border-color: #4f46e5; /* Indigo */
+            color: #4f46e5;
+            background-color: #eef2ff;
+        }
+        .input-group {
+            position: relative;
+        }
+        .input-group .currency-symbol {
+            position: absolute;
+            top: 50%;
+            left: 0.75rem;
+            transform: translateY(-50%);
+            color: #94a3b8; /* slate-400 */
+            pointer-events: none;
+        }
+        .input-group input[type="number"] {
+            padding-left: 2.5rem;
+        }
+        #servicos-tabela tr:not([id^="mensagem-tabela-vazia"]):nth-child(even), 
+        #vendas-tabela tr:not([id^="mensagem-tabela-vazia"]):nth-child(even) {
+            background-color: #f8fafc; /* slate-50 */
+        }
+        #servicos-tabela tr:not([id^="mensagem-tabela-vazia"]):hover, 
+        #vendas-tabela tr:not([id^="mensagem-tabela-vazia"]):hover {
+            background-color: #f1f5f9; /* slate-100 */
+        }
+    </style>
+</head>
+<body class="bg-slate-100">
+
+    <div class="container mx-auto p-4 sm:p-6 lg:p-8 max-w-5xl">
+        
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-slate-800">Gerador de Orçamentos</h1>
+            <p class="text-slate-500 mt-2">Crie orçamentos profissionais de forma rápida e eficiente.</p>
+        </header>
+
+        <div class="mb-6 border-b border-slate-200">
+            <nav class="flex space-x-1 sm:space-x-4 -mb-px" aria-label="Tabs">
+                <button onclick="openTab('servicos')" id="tab-servicos" class="tab-button active flex-1 sm:flex-none whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200">
+                    <i data-lucide="wrench" class="inline-block mr-2 h-4 w-4"></i> Serviços
+                </button>
+                <button onclick="openTab('vendas')" id="tab-vendas" class="tab-button flex-1 sm:flex-none whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm text-slate-500 hover:border-slate-300 hover:text-slate-700 transition-colors duration-200">
+                   <i data-lucide="shopping-cart" class="inline-block mr-2 h-4 w-4"></i> Vendas
+                </button>
+            </nav>
+        </div>
+
+        <main>
+            <!-- Aba de Serviços -->
+            <div id="servicos" class="tab-content space-y-6">
+                <div class="bg-white p-6 rounded-lg shadow-sm">
+                    <h2 class="text-xl font-semibold mb-4 text-slate-700">1. Informações Gerais</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <input type="text" id="cliente-servicos" placeholder="Nome do cliente" class="w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-indigo-300 transition-shadow" aria-label="Nome do Cliente">
+                        <input type="date" id="data-servicos" class="w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-indigo-300 transition-shadow" aria-label="Data do Orçamento">
+                        <input type="text" id="cnpjcpf-servicos" placeholder="CNPJ/CPF (Opcional)" class="w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-indigo-300 transition-shadow" aria-label="CNPJ/CPF">
+                        <input type="text" id="telefone-servicos" placeholder="Telefone (Opcional)" class="w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-indigo-300 transition-shadow" aria-label="Telefone">
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-lg shadow-sm">
+                    <h2 class="text-xl font-semibold mb-4 text-slate-700">2. Adicionar Serviço</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                        <div class="md:col-span-2">
+                            <label for="servico" class="sr-only">Serviço</label>
+                            <select id="servico" class="w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-indigo-300 transition-shadow">
+                                <option value="">Selecione um serviço...</option>
+                                <option value="1">1 - INSTALAÇÃO</option>
+                                <option value="2">2 - LIMPEZA/HIGIENIZAÇÃO</option>
+                                <option value="3">3 - MANUTENÇÃO</option>
+                                <option value="4">4 - TROCA COMPRESSOR</option>
+                                <option value="5">5 - TROCA PLACA/CAPACITOR</option>
+                                <option value="6">6 - REALOCAÇÃO</option>
+                                <option value="7">7 - INFRAESTRUTURA/OBRA</option>
+                                <option value="8">8 - TUBULAÇÃO P GÁS</option>
+                                <option value="9">9 - RECARGA GÁS</option>
+                            </select>
+                        </div>
+                        <input type="number" id="quantidade-servicos" placeholder="Qtd" value="1" min="1" class="w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-indigo-300 transition-shadow" aria-label="Quantidade">
+                        <div class="input-group">
+                            <span class="currency-symbol">R$</span>
+                            <input type="number" id="valor-servicos" placeholder="Valor" step="0.01" min="0" class="w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-indigo-300 transition-shadow" aria-label="Valor">
+                        </div>
+                    </div>
+                     <button onclick="adicionarServico()" class="inline-flex items-center justify-center px-5 py-2.5 mt-4 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 ease-in-out hover:-translate-y-0.5 hover:shadow-lg">
+                        <i data-lucide="plus-circle" class="mr-2 h-4 w-4"></i> Adicionar
+                    </button>
+                </div>
+
+                <div class="bg-white p-6 rounded-lg shadow-sm">
+                    <h2 class="text-xl font-semibold mb-4 text-slate-700">3. Itens do Orçamento</h2>
+                    <div class="overflow-x-auto rounded-lg border border-slate-200">
+                        <table class="min-w-full">
+                            <thead class="bg-slate-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Código</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Descrição</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Qtd</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Valor</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Total</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Ação</th>
+                                </tr>
+                            </thead>
+                            <tbody id="servicos-tabela" class="bg-white divide-y divide-slate-200">
+                                <!-- Conteúdo da tabela aqui -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="mt-4 bg-slate-50 p-4 rounded-lg flex justify-end items-center">
+                        <span class="text-slate-600 font-medium">Total do Orçamento:</span>
+                        <div id="total-servicos" class="ml-4 text-2xl font-bold text-slate-800">R$ 0,00</div>
+                    </div>
+                </div>
+                
+                <div class="bg-white p-6 rounded-lg shadow-sm">
+                    <h2 class="text-xl font-semibold mb-4 text-slate-700">4. Detalhes Finais</h2>
+                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <select id="formaPagamento-servicos" class="w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-indigo-300 transition-shadow" aria-label="Forma de Pagamento">
+                            <option value="">Forma de Pagamento...</option>
+                            <option value="À vista">À vista</option>
+                            <option value="Parcelado">Parcelado</option>
+                            <option value="Cartão de Crédito">Cartão de Crédito</option>
+                            <option value="PIX">PIX</option>
+                            <option value="Dinheiro">Dinheiro</option>
+                        </select>
+                        <input type="text" id="prazoEntrega-servicos" placeholder="Prazo de Execução/Entrega" class="w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-indigo-300 transition-shadow" aria-label="Prazo de Entrega">
+                        <div class="md:col-span-2">
+                            <textarea id="observacoes-servicos" rows="4" class="w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-indigo-300 transition-shadow" aria-label="Observações">Este orçamento não inclui serviço de dreno, parte elétrica e alvenaria.&#13;&#10;Este orçamento tem validade de 10 dias. Após este período, favor consulte-nos novamente.</textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex flex-col sm:flex-row gap-4 justify-end">
+                    <button onclick="limparFormulario('servicos')" class="inline-flex items-center justify-center px-5 py-2.5 border border-slate-300 text-sm font-medium rounded-md shadow-sm text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 ease-in-out hover:-translate-y-0.5 hover:shadow-lg">
+                        <i data-lucide="trash-2" class="mr-2 h-4 w-4"></i> Limpar Orçamento
+                    </button>
+                    <button onclick="gerarPDF('servicos')" class="inline-flex items-center justify-center px-5 py-2.5 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-all duration-200 ease-in-out hover:-translate-y-0.5 hover:shadow-lg">
+                        <i data-lucide="file-down" class="mr-2 h-4 w-4"></i> Gerar PDF
+                    </button>
+                </div>
+            </div>
+
+            <!-- Aba de Vendas -->
+            <div id="vendas" class="tab-content space-y-6 hidden">
+                 <div class="bg-white p-6 rounded-lg shadow-sm">
+                    <h2 class="text-xl font-semibold mb-4 text-slate-700">1. Informações Gerais</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <input type="text" id="cliente-vendas" placeholder="Nome do cliente" class="w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-indigo-300 transition-shadow" aria-label="Nome do Cliente">
+                        <input type="date" id="data-vendas" class="w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-indigo-300 transition-shadow" aria-label="Data do Orçamento">
+                        <input type="text" id="cnpjcpf-vendas" placeholder="CNPJ/CPF (Opcional)" class="w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-indigo-300 transition-shadow" aria-label="CNPJ/CPF">
+                        <input type="text" id="telefone-vendas" placeholder="Telefone (Opcional)" class="w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-indigo-300 transition-shadow" aria-label="Telefone">
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-lg shadow-sm">
+                    <h2 class="text-xl font-semibold mb-4 text-slate-700">2. Adicionar Produto</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                        <div class="md:col-span-2">
+                           <input type="text" id="produto" placeholder="Descrição do Produto" class="w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-indigo-300 transition-shadow" aria-label="Descrição do Produto">
+                        </div>
+                        <input type="number" id="quantidade-vendas" placeholder="Qtd" value="1" min="1" class="w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-indigo-300 transition-shadow" aria-label="Quantidade">
+                        <div class="input-group">
+                            <span class="currency-symbol">R$</span>
+                            <input type="number" id="valor-vendas" placeholder="Valor" step="0.01" min="0" class="w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-indigo-300 transition-shadow" aria-label="Valor Unitário">
+                        </div>
+                    </div>
+                    <button onclick="adicionarProduto()" class="inline-flex items-center justify-center px-5 py-2.5 mt-4 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 ease-in-out hover:-translate-y-0.5 hover:shadow-lg">
+                        <i data-lucide="plus-circle" class="mr-2 h-4 w-4"></i> Adicionar
+                    </button>
+                </div>
+                
+                <div class="bg-white p-6 rounded-lg shadow-sm">
+                    <h2 class="text-xl font-semibold mb-4 text-slate-700">3. Itens do Orçamento</h2>
+                    <div class="overflow-x-auto rounded-lg border border-slate-200">
+                        <table class="min-w-full">
+                            <thead class="bg-slate-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Descrição</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Qtd</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Valor Unit.</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Total</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Ação</th>
+                                </tr>
+                            </thead>
+                            <tbody id="vendas-tabela" class="bg-white divide-y divide-slate-200"></tbody>
+                        </table>
+                    </div>
+                    <div class="mt-4 bg-slate-50 p-4 rounded-lg flex justify-end items-center">
+                        <span class="text-slate-600 font-medium">Total do Orçamento:</span>
+                        <div id="total-vendas" class="ml-4 text-2xl font-bold text-slate-800">R$ 0,00</div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-lg shadow-sm">
+                    <h2 class="text-xl font-semibold mb-4 text-slate-700">4. Detalhes Finais</h2>
+                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <select id="formaPagamento-vendas" class="w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-indigo-300 transition-shadow" aria-label="Forma de Pagamento">
+                            <option value="">Forma de Pagamento...</option>
+                            <option value="À vista">À vista</option>
+                            <option value="Parcelado">Parcelado</option>
+                            <option value="Cartão de Crédito">Cartão de Crédito</option>
+                            <option value="PIX">PIX</option>
+                            <option value="Dinheiro">Dinheiro</option>
+                        </select>
+                        <input type="text" id="prazoEntrega-vendas" placeholder="Prazo de Execução/Entrega" class="w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-indigo-300 transition-shadow" aria-label="Prazo de Entrega">
+                        <div class="md:col-span-2">
+                            <textarea id="observacoes-vendas" rows="4" class="w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-indigo-300 transition-shadow" aria-label="Observações">Validade: 15 dias. Após este período, consulte-nos novamente.</textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex flex-col sm:flex-row gap-4 justify-end">
+                     <button onclick="limparFormulario('vendas')" class="inline-flex items-center justify-center px-5 py-2.5 border border-slate-300 text-sm font-medium rounded-md shadow-sm text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 ease-in-out hover:-translate-y-0.5 hover:shadow-lg">
+                        <i data-lucide="trash-2" class="mr-2 h-4 w-4"></i> Limpar Orçamento
+                    </button>
+                    <button onclick="gerarPDF('vendas')" class="inline-flex items-center justify-center px-5 py-2.5 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-all duration-200 ease-in-out hover:-translate-y-0.5 hover:shadow-lg">
+                        <i data-lucide="file-down" class="mr-2 h-4 w-4"></i> Gerar PDF
+                    </button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal de Alerta/Confirmação -->
+    <div id="modal" class="fixed inset-0 bg-black bg-opacity-50 overflow-y-auto h-full w-full hidden z-50 flex items-center justify-center p-4">
+      <div class="relative mx-auto p-5 border w-full max-w-md shadow-lg rounded-md bg-white">
+        <div class="mt-3 text-center">
+          <div id="modal-icon" class="mx-auto flex items-center justify-center h-12 w-12 rounded-full"></div>
+          <h3 class="text-lg leading-6 font-medium text-slate-900 mt-4" id="modal-title"></h3>
+          <div class="mt-2 px-7 py-3">
+            <p class="text-sm text-slate-500" id="modal-message"></p>
+          </div>
+          <div id="modal-buttons" class="items-center px-4 py-3 space-x-4"></div>
+        </div>
+      </div>
+    </div>
+
+
+    <script>
+        // --- INICIALIZAÇÃO ---
+        lucide.createIcons();
+        
+        // --- MODAL (Alerta e Confirmação) ---
+        const modal = document.getElementById('modal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalMessage = document.getElementById('modal-message');
+        const modalIcon = document.getElementById('modal-icon');
+        const modalButtons = document.getElementById('modal-buttons');
+        let confirmCallback = null;
+
+        function showModal(title, message, type = 'alert', onConfirm) {
+            modalTitle.textContent = title;
+            modalMessage.textContent = message;
+            modalButtons.innerHTML = ''; 
+
+            if (type === 'alert') {
+                modalIcon.innerHTML = `<i data-lucide="alert-triangle" class="h-6 w-6 text-red-600"></i>`;
+                modalIcon.className = 'mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100';
+                const closeButton = document.createElement('button');
+                closeButton.className = "px-4 py-2 bg-red-500 text-white text-base font-medium rounded-md shadow-sm hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-300";
+                closeButton.textContent = 'Fechar';
+                closeButton.onclick = () => modal.classList.add('hidden');
+                modalButtons.appendChild(closeButton);
+            } else if (type === 'confirm') {
+                modalIcon.innerHTML = `<i data-lucide="help-circle" class="h-6 w-6 text-indigo-600"></i>`;
+                modalIcon.className = 'mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-indigo-100';
+                confirmCallback = onConfirm;
+
+                const cancelButton = document.createElement('button');
+                cancelButton.className = "inline-flex items-center justify-center px-5 py-2.5 border border-slate-300 text-sm font-medium rounded-md shadow-sm text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 ease-in-out hover:-translate-y-0.5 hover:shadow-lg";
+                cancelButton.textContent = 'Cancelar';
+                cancelButton.onclick = () => modal.classList.add('hidden');
+
+                const confirmButton = document.createElement('button');
+                confirmButton.className = "inline-flex items-center justify-center px-5 py-2.5 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 ease-in-out hover:-translate-y-0.5 hover:shadow-lg";
+                confirmButton.textContent = 'Confirmar';
+                confirmButton.onclick = () => {
+                    modal.classList.add('hidden');
+                    if (confirmCallback) confirmCallback();
+                };
+                modalButtons.appendChild(cancelButton);
+                modalButtons.appendChild(confirmButton);
+            }
+            lucide.createIcons();
+            modal.classList.remove('hidden');
+        }
+
+        // --- LÓGICA DAS ABAS ---
+        function openTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
+            document.getElementById(tabName).classList.remove('hidden');
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+            lucide.createIcons();
+        }
+
+        // --- FORMATAÇÕES E MÁSCARAS ---
+        function formatarDocumento(valor) {
+            valor = valor.replace(/\D/g, '');
+            if (valor.length <= 11) {
+                return valor.replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+            } else {
+                return valor.slice(0, 14).replace(/(\d{2})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1/$2').replace(/(\d{4})(\d{1,2})$/, '$1-$2');
+            }
+        }
+
+        function formatarTelefone(valor) {
+            valor = valor.replace(/\D/g, '');
+            if (valor.length > 11) valor = valor.slice(0, 11);
+            return valor.replace(/(\d{2})(\d)/, '($1) $2').replace(/(\d{5})(\d)/, '$1-$2');
+        }
+        
+        function formatarValorParaExibicao(valor) {
+            return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor);
+        }
+
+        function exibirMensagemTabelaVazia(tipo, mostrar) {
+            const tabelaBody = document.getElementById(`${tipo}-tabela`);
+            const idMensagem = `mensagem-tabela-vazia-${tipo}`;
+            const mensagemExistente = document.getElementById(idMensagem);
+
+            if (mostrar) {
+                if (mensagemExistente || !tabelaBody) return;
+                const novaLinha = tabelaBody.insertRow();
+                novaLinha.id = idMensagem;
+                const cell = novaLinha.insertCell();
+                cell.colSpan = 6;
+                cell.className = 'px-6 py-10 text-center text-slate-500';
+                cell.innerHTML = `<i data-lucide="info" class="mx-auto h-8 w-8 text-slate-400"></i><p class="mt-2">Nenhum item adicionado ainda.</p>`;
+                lucide.createIcons();
+            } else {
+                if (mensagemExistente) {
+                    mensagemExistente.remove();
+                }
+            }
+        }
+
+        // --- LÓGICA DO ORÇAMENTO ---
+        function atualizarTotal(tipo) {
+            const tabelaId = `${tipo}-tabela`;
+            const totalEl = document.getElementById(`total-${tipo}`);
+            const linhas = document.getElementById(tabelaId).rows;
+            let total = 0;
+            const cellIndex = tipo === 'servicos' ? 4 : 3;
+
+            for (let linha of linhas) {
+                if(linha.id.startsWith('mensagem-tabela-vazia')) continue;
+                const valorTexto = linha.cells[cellIndex].textContent;
+                const valorNumerico = parseFloat(valorTexto.replace('R$', '').replace(/\./g, '').replace(',', '.'));
+                if (!isNaN(valorNumerico)) {
+                    total += valorNumerico;
+                }
+            }
+            
+            if (totalEl) {
+                totalEl.textContent = formatarValorParaExibicao(total);
+            }
+        }
+
+        function adicionarServico() {
+            const servicoSelect = document.getElementById('servico');
+            const quantidadeInput = document.getElementById('quantidade-servicos');
+            const valorInput = document.getElementById('valor-servicos');
+            
+            const quantidade = parseFloat(quantidadeInput.value);
+            const valor = parseFloat(valorInput.value);
+            const servicoId = servicoSelect.value;
+
+            if (servicoId === '' || isNaN(quantidade) || quantidade <= 0 || isNaN(valor) || valor < 0) {
+                showModal('Dados Inválidos', 'Por favor, selecione um serviço e preencha a quantidade e o valor com números válidos.', 'alert');
+                return;
+            }
+            
+            exibirMensagemTabelaVazia('servicos', false);
+            const tabelaBody = document.getElementById('servicos-tabela');
+            const novaLinha = tabelaBody.insertRow();
+            novaLinha.className = 'text-sm text-slate-800';
+            
+            const textoOpcao = servicoSelect.options[servicoSelect.selectedIndex].text;
+            const descricaoServico = textoOpcao.includes(' - ') ? textoOpcao.split(' - ')[1] : textoOpcao;
+            const total = quantidade * valor;
+
+            novaLinha.insertCell().outerHTML = `<td class="px-6 py-4 whitespace-nowrap">${servicoId}</td>`;
+            novaLinha.insertCell().outerHTML = `<td class="px-6 py-4 whitespace-nowrap">${descricaoServico}</td>`;
+            novaLinha.insertCell().outerHTML = `<td class="px-6 py-4 whitespace-nowrap">${quantidade}</td>`;
+            novaLinha.insertCell().outerHTML = `<td class="px-6 py-4 whitespace-nowrap">${formatarValorParaExibicao(valor)}</td>`;
+            novaLinha.insertCell().outerHTML = `<td class="px-6 py-4 whitespace-nowrap font-medium">${formatarValorParaExibicao(total)}</td>`;
+            
+            const cellAcao = novaLinha.insertCell();
+            cellAcao.className = 'px-6 py-4 whitespace-nowrap text-right';
+            const removeButton = document.createElement('button');
+            removeButton.className = 'text-red-600 hover:text-red-800 transition-colors';
+            removeButton.innerHTML = `<i data-lucide="trash-2" class="h-5 w-5"></i>`;
+            removeButton.onclick = function() { removerItem(this, 'servicos'); };
+            cellAcao.appendChild(removeButton);
+            
+            lucide.createIcons();
+            atualizarTotal('servicos');
+            
+            servicoSelect.value = '';
+            quantidadeInput.value = '1';
+            valorInput.value = '';
+        }
+
+        function adicionarProduto() {
+            const produtoInput = document.getElementById('produto');
+            const quantidadeInput = document.getElementById('quantidade-vendas');
+            const valorInput = document.getElementById('valor-vendas');
+            
+            const quantidade = parseFloat(quantidadeInput.value);
+            const valor = parseFloat(valorInput.value);
+            const produtoDesc = produtoInput.value;
+
+            if (produtoDesc === '' || isNaN(quantidade) || quantidade <= 0 || isNaN(valor) || valor < 0) {
+                showModal('Dados Inválidos', 'Por favor, preencha a descrição, quantidade e valor com dados válidos.', 'alert');
+                return;
+            }
+            
+            exibirMensagemTabelaVazia('vendas', false);
+            const tabelaBody = document.getElementById('vendas-tabela');
+            const novaLinha = tabelaBody.insertRow();
+            novaLinha.className = 'text-sm text-slate-800';
+
+            const total = quantidade * valor;
+
+            novaLinha.insertCell().outerHTML = `<td class="px-6 py-4 whitespace-nowrap">${produtoDesc}</td>`;
+            novaLinha.insertCell().outerHTML = `<td class="px-6 py-4 whitespace-nowrap">${quantidade}</td>`;
+            novaLinha.insertCell().outerHTML = `<td class="px-6 py-4 whitespace-nowrap">${formatarValorParaExibicao(valor)}</td>`;
+            novaLinha.insertCell().outerHTML = `<td class="px-6 py-4 whitespace-nowrap font-medium">${formatarValorParaExibicao(total)}</td>`;
+            
+            const cellAcao = novaLinha.insertCell();
+            cellAcao.className = 'px-6 py-4 whitespace-nowrap text-right';
+            const removeButton = document.createElement('button');
+            removeButton.className = 'text-red-600 hover:text-red-800 transition-colors';
+            removeButton.innerHTML = `<i data-lucide="trash-2" class="h-5 w-5"></i>`;
+            removeButton.onclick = function() { removerItem(this, 'vendas'); };
+            cellAcao.appendChild(removeButton);
+
+            lucide.createIcons();
+            atualizarTotal('vendas');
+
+            produtoInput.value = '';
+            quantidadeInput.value = '1';
+            valorInput.value = '';
+        }
+        
+        function removerItem(button, tipo) {
+            const tabelaBody = document.getElementById(`${tipo}-tabela`);
+            const linha = button.closest('tr');
+            linha.remove();
+            if (tabelaBody.rows.length === 0) {
+                exibirMensagemTabelaVazia(tipo, true);
+            }
+            atualizarTotal(tipo);
+        }
+
+        function limparFormulario(tipo) {
+            showModal('Confirmar Ação', 'Tem certeza que deseja limpar todos os campos e itens deste orçamento?', 'confirm', () => {
+                document.getElementById(`cliente-${tipo}`).value = '';
+                document.getElementById(`data-${tipo}`).value = new Date().toISOString().split('T')[0];
+                document.getElementById(`cnpjcpf-${tipo}`).value = '';
+                document.getElementById(`telefone-${tipo}`).value = '';
+                document.getElementById(`${tipo}-tabela`).innerHTML = '';
+                exibirMensagemTabelaVazia(tipo, true);
+                document.getElementById(`formaPagamento-${tipo}`).value = '';
+                document.getElementById(`prazoEntrega-${tipo}`).value = '';
+                if(tipo === 'servicos') {
+                    document.getElementById('observacoes-servicos').value = 'Este orçamento não inclui serviço de dreno, parte elétrica e alvenaria.\n\nEste orçamento tem validade de 10 dias. Após este período, favor consulte-nos novamente.';
+                } else {
+                    document.getElementById('observacoes-vendas').value = 'Validade: 15 dias. Após este período, consulte-nos novamente.';
+                }
+                atualizarTotal(tipo);
+            });
+        }
+
+        // --- GERAÇÃO DE PDF ---
+        function gerarPDF(tipo) {
+            try {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+
+                const tabelaId = `${tipo}-tabela`;
+                if (document.getElementById(tabelaId).rows.length === 0 || (document.getElementById(tabelaId).rows.length === 1 && document.getElementById(tabelaId).rows[0].id.startsWith('mensagem-tabela-vazia'))) {
+                    showModal('Orçamento Vazio', 'É necessário adicionar pelo menos um serviço ou produto antes de gerar o PDF.', 'alert');
+                    return;
+                }
+                
+                const data = document.getElementById(`data-${tipo}`).value;
+                const cliente = document.getElementById(`cliente-${tipo}`).value || 'Não informado';
+                const formaPagamento = document.getElementById(`formaPagamento-${tipo}`).value || 'Não informado';
+                const prazoEntrega = document.getElementById(`prazoEntrega-${tipo}`).value || 'Não informado';
+                
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(18);
+                doc.text("RJ AR CONDICIONADO LTDA", 105, 20, { align: "center" });
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(9);
+                doc.text("CNPJ: 55.266.053/0001-40 | IE: 004901323.00-24", 105, 26, { align: "center" });
+                doc.text("Rua João Lourenço Gomide - Centro - Pains-MG", 105, 30, { align: "center" });
+                doc.text("Tel: (37) 99876-6121 | Email: rjarcondicionado86@hotmail.com", 105, 34, { align: "center" });
+                doc.setLineWidth(0.5);
+                doc.line(14, 42, 196, 42);
+
+                doc.setFontSize(14);
+                doc.setFont('helvetica', 'bold');
+                doc.text("Orçamento", 14, 52);
+                doc.setFontSize(10);
+                doc.setFont('helvetica', 'normal');
+                const dataFormatada = data ? new Date(data + 'T00:00:00').toLocaleDateString('pt-BR') : 'Não informada';
+                doc.text(`Data: ${dataFormatada}`, 196, 52, { align: 'right' });
+                
+                let infoY = 60;
+                doc.setFont('helvetica', 'bold');
+                doc.text("Cliente:", 14, infoY);
+                doc.setFont('helvetica', 'normal');
+                doc.text(cliente, 32, infoY);
+
+                const cnpjcpf = document.getElementById(`cnpjcpf-${tipo}`).value;
+                if (cnpjcpf) {
+                    infoY += 5;
+                    doc.text("CNPJ/CPF:", 14, infoY, {fontStyle: 'bold'});
+                    doc.text(cnpjcpf, 36, infoY, {fontStyle: 'normal'});
+                }
+                const telefone = document.getElementById(`telefone-${tipo}`).value;
+                if (telefone) {
+                    infoY += 5;
+                    doc.text("Telefone:", 14, infoY, {fontStyle: 'bold'});
+                    doc.text(telefone, 34, infoY, {fontStyle: 'normal'});
+                }
+                
+                const head = tipo === 'servicos' 
+                    ? [['Código', 'Descrição', 'Qtd', 'Valor', 'Total']]
+                    : [['Descrição', 'Qtd', 'Valor Unit.', 'Total']];
+                
+                const body = Array.from(document.getElementById(tabelaId).rows).map(row => 
+                    Array.from(row.cells).slice(0, -1).map(cell => cell.textContent)
+                );
+
+                doc.autoTable({
+                    startY: infoY + 10,
+                    head: head,
+                    body: body,
+                    theme: 'grid',
+                    headStyles: { fillColor: [16, 185, 129] }, // Emerald
+                    styles: { font: 'helvetica', fontSize: 9 },
+                    didDrawPage: function (data) {
+                        // Footer
+                        const pageCount = doc.internal.getNumberOfPages();
+                        doc.setFontSize(8);
+                        doc.setTextColor(150);
+                        doc.text(`Página ${data.pageNumber} de ${pageCount}`, data.settings.margin.left, doc.internal.pageSize.height - 10);
+                        doc.text("RJ AR CONDICIONADO LTDA", doc.internal.pageSize.width - data.settings.margin.right, doc.internal.pageSize.height - 10, { align: 'right' });
+                    }
+                });
+                
+                let finalY = doc.autoTable.previous.finalY;
+                const totalString = document.getElementById(`total-${tipo}`).textContent;
+                doc.setFontSize(12);
+                doc.setFont('helvetica', 'bold');
+                doc.text(totalString, 196, finalY + 10, { align: 'right' });
+
+                let finalDetailsY = finalY + 20;
+                if (finalDetailsY > doc.internal.pageSize.height - 40) {
+                    doc.addPage();
+                    finalDetailsY = 20;
+                }
+                
+                const observacoes = document.getElementById(`observacoes-${tipo}`).value;
+                doc.setFontSize(10);
+                doc.setFont('helvetica', 'bold');
+                doc.text("Condições:", 14, finalDetailsY);
+                doc.setFont('helvetica', 'normal');
+                doc.text(`Forma de Pagamento: ${formaPagamento}`, 14, finalDetailsY + 5);
+                doc.text(`Prazo: ${prazoEntrega}`, 14, finalDetailsY + 10);
+                doc.setFont('helvetica', 'bold');
+                doc.text("Observações:", 14, finalDetailsY + 20);
+                doc.setFont('helvetica', 'normal');
+                const splitObs = doc.splitTextToSize(observacoes, 182);
+                doc.text(splitObs, 14, finalDetailsY + 25);
+
+                const nomeArquivo = `orcamento-${tipo}-${cliente.split(' ')[0].toLowerCase() || 'geral'}.pdf`;
+                doc.save(nomeArquivo);
+
+            } catch (error) {
+                console.error("Erro ao gerar PDF:", error);
+                showModal('Erro Inesperado', 'Ocorreu um erro ao tentar gerar o PDF. Verifique o console para mais detalhes (F12).', 'alert');
+            }
+        }
+
+        // --- EVENT LISTENERS ---
+        window.onload = function() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('data-servicos').value = today;
+            document.getElementById('data-vendas').value = today;
+
+            exibirMensagemTabelaVazia('servicos', true);
+            exibirMensagemTabelaVazia('vendas', true);
+
+            document.getElementById('cnpjcpf-servicos').addEventListener('input', (e) => e.target.value = formatarDocumento(e.target.value));
+            document.getElementById('cnpjcpf-vendas').addEventListener('input', (e) => e.target.value = formatarDocumento(e.target.value));
+            document.getElementById('telefone-servicos').addEventListener('input', (e) => e.target.value = formatarTelefone(e.target.value));
+            document.getElementById('telefone-vendas').addEventListener('input', (e) => e.target.value = formatarTelefone(e.target.value));
+        };
+    </script>
+</body>
+</html>
