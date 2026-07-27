@@ -1,641 +1,1484 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gerador de Orçamentos PRO</title>
-    
-    <!-- Tailwind CSS -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#03152F">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Orçamentos RJ">
+    <title>Orçamentos RJ — PRO</title>
+
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- jsPDF e jsPDF-AutoTable -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
-
-    <!-- Ícones (Lucide Icons) -->
     <script src="https://unpkg.com/lucide@latest"></script>
 
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --brand: #03152F;
+            --brand-accent: #E31C28;
+            --brand-soft: #E8EEF7;
+            --surface: #ffffff;
+            --safe-bottom: env(safe-area-inset-bottom, 0px);
+        }
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: 'Manrope', 'Segoe UI', system-ui, sans-serif;
             -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
+            padding-bottom: calc(96px + var(--safe-bottom));
+            background:
+                radial-gradient(1200px 500px at 10% -10%, rgba(227,28,40,0.08), transparent 55%),
+                radial-gradient(900px 420px at 100% 0%, rgba(3,21,47,0.10), transparent 50%),
+                #eef2f7;
+        }
+        @media (min-width: 768px) {
+            body { padding-bottom: 1.5rem; }
         }
         input[type=number]::-webkit-inner-spin-button,
-        input[type=number]::-webkit-outer-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
-        }
+        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
         input[type=number] { -moz-appearance: textfield; }
         .tab-button.active {
-            border-color: #4f46e5; /* Indigo */
-            color: #4f46e5;
-            background-color: #eef2ff;
+            border-color: var(--brand);
+            color: var(--brand);
+            background-color: var(--brand-soft);
         }
-        .input-group {
-            position: relative;
-        }
+        .input-group { position: relative; }
         .input-group .currency-symbol {
+            position: absolute; top: 50%; left: 0.75rem;
+            transform: translateY(-50%); color: #94a3b8; pointer-events: none;
+        }
+        .input-group input { padding-left: 2.5rem; }
+        .field {
+            width: 100%; padding: 0.8rem 0.9rem;
+            border: 1px solid #d4dce8; border-radius: 0.7rem;
+            background: #fff; min-height: 48px;
+            font-size: 16px;
+            color: #0f172a;
+            transition: box-shadow .15s, border-color .15s, background .15s;
+        }
+        .field:focus {
+            outline: none; border-color: #03152F;
+            box-shadow: 0 0 0 3px rgba(3, 21, 47, 0.14);
+            background: #fcfdff;
+        }
+        .field-money {
+            font-variant-numeric: tabular-nums;
+            font-weight: 600;
+            letter-spacing: 0.01em;
+            text-align: right;
+        }
+        .label {
+            display: block;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            color: #64748b;
+            margin-bottom: 0.35rem;
+        }
+        .section-title {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            font-size: 1.05rem;
+            font-weight: 800;
+            color: #03152F;
+            margin-bottom: 1rem;
+        }
+        .section-num {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 1.6rem; height: 1.6rem;
+            border-radius: 0.45rem;
+            background: #03152F;
+            color: #fff;
+            font-size: 0.75rem;
+            font-weight: 800;
+            flex-shrink: 0;
+        }
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center;
+            gap: 0.5rem; min-height: 48px; padding: 0.75rem 1.25rem;
+            border-radius: 0.75rem; font-weight: 600; font-size: 0.875rem;
+            transition: transform .15s, box-shadow .15s, background .15s;
+        }
+        .btn:active { transform: scale(0.98); }
+        .btn-primary { background: #03152F; color: #fff; }
+        .btn-primary:hover { background: #0A2348; }
+        .btn-success { background: #E31C28; color: #fff; }
+        .btn-success:hover { background: #C41620; }
+        .btn-whatsapp { background: #16a34a; color: #fff; }
+        .btn-whatsapp:hover { background: #15803d; }
+        .btn-ghost {
+            background: #fff; color: #334155;
+            border: 1px solid #cbd5e1;
+        }
+        .btn-ghost:hover { background: #f8fafc; }
+        .qty-btn {
+            width: 44px; height: 48px; display: flex; align-items: center; justify-content: center;
+            background: #f1f5f9; border: 1px solid #cbd5e1; color: #0f172a; font-size: 1.25rem; font-weight: 700;
+        }
+        .qty-btn:active { background: #e2e8f0; }
+        .card {
+            background: var(--surface);
+            border-radius: 1.1rem;
+            padding: 1.35rem 1.25rem;
+            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
+            border: 1px solid rgba(15, 23, 42, 0.06);
+            position: relative;
+            overflow: hidden;
+        }
+        .card::before {
+            content: '';
             position: absolute;
-            top: 50%;
-            left: 0.75rem;
-            transform: translateY(-50%);
-            color: #94a3b8; /* slate-400 */
-            pointer-events: none;
+            left: 0; top: 0; bottom: 0;
+            width: 4px;
+            background: linear-gradient(180deg, #03152F, #E31C28);
         }
-        .input-group input[type="number"] {
-            padding-left: 2.5rem;
+        .hero-bar {
+            background: linear-gradient(135deg, #03152F 0%, #0a2348 60%, #122a52 100%);
+            color: #fff;
+            border-radius: 1.25rem;
+            padding: 1.1rem 1.25rem;
+            box-shadow: 0 12px 30px rgba(3, 21, 47, 0.22);
+            margin-bottom: 1.25rem;
         }
-        #servicos-tabela tr:not([id^="mensagem-tabela-vazia"]):nth-child(even), 
-        #vendas-tabela tr:not([id^="mensagem-tabela-vazia"]):nth-child(even) {
-            background-color: #f8fafc; /* slate-50 */
+        .hero-bar .logo-header {
+            filter: drop-shadow(0 2px 6px rgba(0,0,0,0.18));
+            background: #fff;
+            border-radius: 0.75rem;
+            padding: 0.35rem 0.55rem;
         }
-        #servicos-tabela tr:not([id^="mensagem-tabela-vazia"]):hover, 
-        #vendas-tabela tr:not([id^="mensagem-tabela-vazia"]):hover {
-            background-color: #f1f5f9; /* slate-100 */
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            font-size: 0.72rem;
+            color: #e2e8f0;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.14);
+            border-radius: 999px;
+            padding: 0.45rem 0.75rem;
         }
+        .draft-dot { background: #4ade80 !important; }
+        .total-box {
+            background: linear-gradient(135deg, #03152F, #0b274d);
+            color: #fff;
+            border-radius: 1rem;
+            padding: 1rem 1.1rem;
+        }
+        .total-box .sub { color: rgba(255,255,255,0.75); font-size: 0.85rem; }
+        .total-box .total-label { color: rgba(255,255,255,0.65); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; }
+        .total-box .total-value { color: #fff; font-size: 1.65rem; font-weight: 800; }
+        #servicos-tabela tr:not([id^="mensagem-tabela-vazia"]):nth-child(even),
+        #vendas-tabela tr:not([id^="mensagem-tabela-vazia"]):nth-child(even) { background: #f8fafc; }
+        .mobile-bar {
+            position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+            background: rgba(255,255,255,0.96); backdrop-filter: blur(10px);
+            border-top: 1px solid #e2e8f0;
+            padding: 0.75rem 1rem calc(0.75rem + var(--safe-bottom));
+        }
+        @media (min-width: 768px) { .mobile-bar { display: none; } }
+        .toast {
+            position: fixed; left: 50%; bottom: calc(100px + var(--safe-bottom));
+            transform: translateX(-50%) translateY(20px);
+            background: #0f172a; color: #fff; padding: 0.75rem 1.1rem;
+            border-radius: 999px; font-size: 0.875rem; z-index: 60;
+            opacity: 0; pointer-events: none; transition: all .25s; max-width: 90vw;
+            text-align: center;
+        }
+        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+        @media (min-width: 768px) {
+            .toast { bottom: 2rem; }
+        }
+        .draft-dot {
+            width: 8px; height: 8px; border-radius: 999px; background: #E31C28;
+            display: inline-block; animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+        .history-item:hover { background: #f8fafc; }
+        .panel-slide {
+            max-height: 0; overflow: hidden; transition: max-height .3s ease;
+        }
+        .panel-slide.open { max-height: 2000px; }
+        .text-navy { color: #03152F; }
+        .bg-brand-soft { background: #E8EEF7; }
+        .logo-header { height: 52px; width: auto; object-fit: contain; }
+        @media (min-width: 640px) { .logo-header { height: 64px; } }
     </style>
 </head>
-<body class="bg-slate-100">
+<body class="text-slate-800">
 
     <div class="container mx-auto p-4 sm:p-6 lg:p-8 max-w-5xl">
-        
-        <header class="text-center mb-8">
-            <h1 class="text-4xl font-bold text-slate-800">Gerador de Orçamentos</h1>
-            <p class="text-slate-500 mt-2">Crie orçamentos profissionais de forma rápida e eficiente.</p>
+        <header class="hero-bar mb-6">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div class="flex items-center gap-3 sm:gap-4">
+                    <img src="data:image/png;base64,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" alt="RJ Ar-Condicionado" class="logo-header" />
+                    <div>
+                        <p class="text-xs uppercase tracking-[0.14em] text-red-300 font-semibold mb-1">RJ Ar-Condicionado</p>
+                        <h1 class="text-2xl sm:text-3xl font-extrabold text-white leading-tight">Gerador de Orçamentos</h1>
+                        <p class="text-slate-300 mt-1 text-sm">Rápido no celular e no computador · salva neste aparelho</p>
+                    </div>
+                </div>
+                <div class="status-pill self-start">
+                    <span class="draft-dot" id="draft-indicator" title="Salvando automaticamente"></span>
+                    <span id="draft-status">Rascunho salvo neste aparelho</span>
+                </div>
+            </div>
         </header>
 
+        <!-- Histórico -->
+        <div class="card mb-6">
+            <button type="button" onclick="toggleHistorico()" class="w-full flex items-center justify-between text-left">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="history" class="h-5 w-5 text-navy"></i>
+                    <span class="font-semibold text-slate-800">Histórico neste aparelho</span>
+                    <span id="historico-count" class="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">0</span>
+                </div>
+                <i data-lucide="chevron-down" id="historico-chevron" class="h-5 w-5 text-slate-400 transition-transform"></i>
+            </button>
+            <div id="historico-panel" class="panel-slide mt-3">
+                <p class="text-xs text-slate-500 mb-3">Os orçamentos ficam só neste navegador/aparelho. Não vão para a nuvem.</p>
+                <div id="historico-lista" class="space-y-2 max-h-64 overflow-y-auto"></div>
+            </div>
+        </div>
+
         <div class="mb-6 border-b border-slate-200">
-            <nav class="flex space-x-1 sm:space-x-4 -mb-px" aria-label="Tabs">
-                <button onclick="openTab('servicos')" id="tab-servicos" class="tab-button active flex-1 sm:flex-none whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200">
-                    <i data-lucide="wrench" class="inline-block mr-2 h-4 w-4"></i> Serviços
+            <nav class="flex gap-1 sm:gap-2 -mb-px" aria-label="Tabs">
+                <button onclick="openTab('servicos')" id="tab-servicos" class="tab-button active flex-1 sm:flex-none whitespace-nowrap py-3.5 px-4 border-b-2 font-semibold text-sm transition-colors rounded-t-lg">
+                    <i data-lucide="wrench" class="inline-block mr-1.5 h-4 w-4"></i> Serviços
                 </button>
-                <button onclick="openTab('vendas')" id="tab-vendas" class="tab-button flex-1 sm:flex-none whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm text-slate-500 hover:border-slate-300 hover:text-slate-700 transition-colors duration-200">
-                   <i data-lucide="shopping-cart" class="inline-block mr-2 h-4 w-4"></i> Vendas
+                <button onclick="openTab('vendas')" id="tab-vendas" class="tab-button flex-1 sm:flex-none whitespace-nowrap py-3.5 px-4 border-b-2 font-semibold text-sm text-slate-500 hover:text-slate-700 transition-colors rounded-t-lg">
+                    <i data-lucide="shopping-cart" class="inline-block mr-1.5 h-4 w-4"></i> Vendas
                 </button>
             </nav>
         </div>
 
         <main>
-            <!-- Aba de Serviços -->
-            <div id="servicos" class="tab-content space-y-6">
-                <div class="bg-white p-6 rounded-lg shadow-sm">
-                    <h2 class="text-xl font-semibold mb-4 text-slate-700">1. Informações Gerais</h2>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <input type="text" id="cliente-servicos" placeholder="Nome do cliente" class="w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-indigo-300 transition-shadow" aria-label="Nome do Cliente">
-                        <input type="date" id="data-servicos" class="w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-indigo-300 transition-shadow" aria-label="Data do Orçamento">
-                        <input type="text" id="cnpjcpf-servicos" placeholder="CNPJ/CPF (Opcional)" class="w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-indigo-300 transition-shadow" aria-label="CNPJ/CPF">
-                        <input type="text" id="telefone-servicos" placeholder="Telefone (Opcional)" class="w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-indigo-300 transition-shadow" aria-label="Telefone">
+            <!-- SERVIÇOS -->
+            <div id="servicos" class="tab-content space-y-4 sm:space-y-6">
+                <div class="card">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="section-title !mb-4"><span class="section-num">1</span> Cliente</h2>
+                        <span class="text-xs font-mono text-navy bg-brand-soft px-2 py-1 rounded" id="numero-servicos">—</span>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                            <label class="label" for="cliente-servicos">Nome do cliente *</label>
+                            <input type="text" id="cliente-servicos" placeholder="Ex.: João da Silva" class="field" autocomplete="name">
+                        </div>
+                        <div>
+                            <label class="label" for="data-servicos">Data</label>
+                            <input type="date" id="data-servicos" class="field" aria-label="Data">
+                        </div>
+                        <div>
+                            <label class="label" for="cnpjcpf-servicos">CNPJ / CPF</label>
+                            <input type="text" id="cnpjcpf-servicos" placeholder="000.000.000-00" class="field" inputmode="numeric" maxlength="18" oninput="aplicarMascaraDocumento(this)">
+                        </div>
+                        <div>
+                            <label class="label" for="telefone-servicos">Telefone / WhatsApp</label>
+                            <input type="tel" id="telefone-servicos" placeholder="(37) 99999-9999" class="field" inputmode="tel" maxlength="15" oninput="aplicarMascaraTelefone(this)">
+                        </div>
                     </div>
                 </div>
 
-                <div class="bg-white p-6 rounded-lg shadow-sm">
-                    <h2 class="text-xl font-semibold mb-4 text-slate-700">2. Adicionar Serviço</h2>
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-                        <div class="md:col-span-2">
-                            <label for="servico" class="sr-only">Serviço</label>
-                            <select id="servico" class="w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-indigo-300 transition-shadow">
-                                <option value="">Selecione um serviço...</option>
-                                <option value="1">1 - INSTALAÇÃO DE 09 A 12 MIL BTUS</option>
-                                <option value="2">2 - INSTALAÇÃO DE 18 A 24 MIL BTUS</option>
-                                <option value="3">3 - INSTALAÇÃO DE 32 A 60 MIL BTUS</option>
-                                <option value="4">4 - LIMPEZA/HIGIENIZAÇÃO DE 09 A 12 MIL BTUS</option>
-                                <option value="5">5 - LIMPEZA/HIGIENIZAÇÃO DE 18 A 24 MIL BTUS</option>
-                                <option value="6">6 - LIMPEZA/HIGIENIZAÇÃO DE 32 A 60 MIL BTUS</option>
-                                <option value="7">7 - MANUTENÇÃO</option>
-                                <option value="8">8 - TROCA COMPRESSOR</option>
-                                <option value="9">9 - TROCA PLACA/CAPACITOR</option>
-                                <option value="10">10 - REALOCAÇÃO</option>
-                                <option value="11">11 - INFRAESTRUTURA/OBRA</option>
-                                <option value="12">12 - TUBULAÇÃO P GÁS</option>
-                                <option value="13">13 - RECARGA GÁS</option>
-                            </select>
+                <div class="card">
+                    <h2 class="section-title"><span class="section-num">2</span> Adicionar serviço</h2>
+                    <div class="grid grid-cols-1 gap-3">
+                        <select id="servico" class="field">
+                            <option value="">Selecione um serviço...</option>
+                            <option value="1">1 — Instalação 09 a 12 mil BTUs</option>
+                            <option value="2">2 — Instalação 18 a 24 mil BTUs</option>
+                            <option value="3">3 — Instalação 32 a 60 mil BTUs</option>
+                            <option value="4">4 — Instalação 60 a 80 mil BTUs</option>
+                            <option value="5">5 — Limpeza/Higienização 09 a 12 mil BTUs</option>
+                            <option value="6">6 — Limpeza/Higienização 18 a 24 mil BTUs</option>
+                            <option value="7">7 — Limpeza/Higienização 32 a 60 mil BTUs</option>
+                            <option value="8">8 — Limpeza/Higienização 60 a 80 mil BTUs</option>
+                            <option value="9">9 — Manutenção</option>
+                            <option value="10">10 — Troca compressor</option>
+                            <option value="11">11 — Troca placa/capacitor</option>
+                            <option value="12">12 — Realocação</option>
+                            <option value="13">13 — Retirada ar condicionado</option>
+                            <option value="14">14 — Infraestrutura/Obra</option>
+                            <option value="15">15 — Tubulação p/ gás</option>
+                            <option value="16">16 — Recarga gás</option>
+                        </select>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="label">Quantidade</label>
+                                <div class="flex">
+                                    <button type="button" class="qty-btn rounded-l-xl border-r-0" onclick="ajustarQtd('servicos', -1)" aria-label="Diminuir">−</button>
+                                    <input type="number" id="quantidade-servicos" value="1" min="1" class="field rounded-none border-x-0 text-center font-semibold" aria-label="Quantidade">
+                                    <button type="button" class="qty-btn rounded-r-xl border-l-0" onclick="ajustarQtd('servicos', 1)" aria-label="Aumentar">+</button>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="label">Valor unitário</label>
+                                <div class="input-group">
+                                    <span class="currency-symbol">R$</span>
+                                    <input type="text" id="valor-servicos" placeholder="0,00" class="field field-money" inputmode="numeric" autocomplete="off">
+                                </div>
+                            </div>
                         </div>
-                        <input type="number" id="quantidade-servicos" placeholder="Qtd" value="1" min="1" class="w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-indigo-300 transition-shadow" aria-label="Quantidade">
-                        <div class="input-group">
-                            <span class="currency-symbol">R$</span>
-                            <input type="number" id="valor-servicos" placeholder="Valor" step="0.01" min="0" class="w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-indigo-300 transition-shadow" aria-label="Valor">
-                        </div>
+                        <button type="button" onclick="adicionarServico()" class="btn btn-primary w-full sm:w-auto">
+                            <i data-lucide="plus-circle" class="h-4 w-4"></i> Adicionar serviço
+                        </button>
                     </div>
-                     <button onclick="adicionarServico()" class="inline-flex items-center justify-center px-5 py-2.5 mt-4 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 ease-in-out hover:-translate-y-0.5 hover:shadow-lg">
-                        <i data-lucide="plus-circle" class="mr-2 h-4 w-4"></i> Adicionar
-                    </button>
                 </div>
 
-                <div class="bg-white p-6 rounded-lg shadow-sm">
-                    <h2 class="text-xl font-semibold mb-4 text-slate-700">3. Itens do Orçamento</h2>
-                    <div class="overflow-x-auto rounded-lg border border-slate-200">
-                        <table class="min-w-full">
+                <div class="card">
+                    <h2 class="section-title"><span class="section-num">3</span> Itens</h2>
+                    <div class="overflow-x-auto rounded-xl border border-slate-200 -mx-1">
+                        <table class="min-w-full text-sm">
                             <thead class="bg-slate-50">
                                 <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Código</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Descrição</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Qtd</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Valor</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Total</th>
-                                    <th class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Ação</th>
+                                    <th class="px-3 sm:px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Cód.</th>
+                                    <th class="px-3 sm:px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Descrição</th>
+                                    <th class="px-3 sm:px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Qtd</th>
+                                    <th class="px-3 sm:px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Valor</th>
+                                    <th class="px-3 sm:px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Total</th>
+                                    <th class="px-3 sm:px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase"></th>
                                 </tr>
                             </thead>
-                            <tbody id="servicos-tabela" class="bg-white divide-y divide-slate-200">
-                                <!-- Conteúdo da tabela aqui -->
-                            </tbody>
+                            <tbody id="servicos-tabela" class="divide-y divide-slate-100"></tbody>
                         </table>
                     </div>
-                    <div class="mt-4 bg-slate-50 p-4 rounded-lg flex justify-end items-center">
-                        <span class="text-slate-600 font-medium">Total do Orçamento:</span>
-                        <div id="total-servicos" class="ml-4 text-2xl font-bold text-slate-800">R$ 0,00</div>
-                    </div>
-                </div>
-                
-                <div class="bg-white p-6 rounded-lg shadow-sm">
-                    <h2 class="text-xl font-semibold mb-4 text-slate-700">4. Detalhes Finais</h2>
-                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <select id="formaPagamento-servicos" class="w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-indigo-300 transition-shadow" aria-label="Forma de Pagamento">
-                            <option value="">Forma de Pagamento...</option>
-                            <option value="À vista">À vista</option>
-                            <option value="Parcelado">Parcelado</option>
-                            <option value="Cartão de Crédito">Cartão de Crédito</option>
-                            <option value="PIX">PIX</option>
-                            <option value="Dinheiro">Dinheiro</option>
-                        </select>
-                        <input type="text" id="prazoEntrega-servicos" placeholder="Prazo de Execução/Entrega" class="w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-indigo-300 transition-shadow" aria-label="Prazo de Entrega">
-                        <div class="md:col-span-2">
-                            <textarea id="observacoes-servicos" rows="4" class="w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-indigo-300 transition-shadow" aria-label="Observações">Este orçamento não inclui serviço de dreno, parte elétrica e alvenaria.&#13;&#10;Este orçamento tem validade de 10 dias. Após este período, favor consulte-nos novamente.</textarea>
+                    <div class="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+                        <div>
+                            <label class="label">Desconto (R$)</label>
+                            <div class="input-group">
+                                <span class="currency-symbol">R$</span>
+                                <input type="text" id="desconto-servicos" placeholder="0,00" value="0,00" class="field field-money" inputmode="numeric" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="sm:col-span-2 total-box flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                            <div class="sub">
+                                <span>Subtotal: </span><span id="subtotal-servicos" class="font-semibold">R$ 0,00</span>
+                            </div>
+                            <div class="text-right">
+                                <div class="total-label">Total</div>
+                                <div id="total-servicos" class="total-value">R$ 0,00</div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="flex flex-col sm:flex-row gap-4 justify-end">
-                    <button onclick="limparFormulario('servicos')" class="inline-flex items-center justify-center px-5 py-2.5 border border-slate-300 text-sm font-medium rounded-md shadow-sm text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 ease-in-out hover:-translate-y-0.5 hover:shadow-lg">
-                        <i data-lucide="trash-2" class="mr-2 h-4 w-4"></i> Limpar Orçamento
-                    </button>
-                    <button onclick="gerarPDF('servicos')" class="inline-flex items-center justify-center px-5 py-2.5 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-all duration-200 ease-in-out hover:-translate-y-0.5 hover:shadow-lg">
-                        <i data-lucide="file-down" class="mr-2 h-4 w-4"></i> Gerar PDF
-                    </button>
+                <div class="card">
+                    <h2 class="section-title"><span class="section-num">4</span> Condições</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                            <label class="label" for="formaPagamento-servicos">Forma de pagamento</label>
+                            <select id="formaPagamento-servicos" class="field">
+                                <option value="">Forma de pagamento...</option>
+                                <option value="À vista">À vista</option>
+                                <option value="Parcelado">Parcelado</option>
+                                <option value="Cartão de Crédito">Cartão de Crédito</option>
+                                <option value="PIX">PIX</option>
+                                <option value="Dinheiro">Dinheiro</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="label" for="prazoEntrega-servicos">Prazo de execução</label>
+                            <input type="text" id="prazoEntrega-servicos" placeholder="Prazo de execução" class="field">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="label" for="observacoes-servicos">Observações</label>
+                            <textarea id="observacoes-servicos" rows="4" class="field" style="min-height:100px">Este orçamento não inclui serviço de dreno, parte elétrica e alvenaria.
+Este orçamento tem validade de 10 dias. Após este período, favor consulte-nos novamente.</textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="hidden md:flex flex-wrap gap-3 justify-end">
+                    <button type="button" onclick="limparFormulario('servicos')" class="btn btn-ghost"><i data-lucide="trash-2" class="h-4 w-4"></i> Limpar</button>
+                    <button type="button" onclick="salvarNoHistorico('servicos')" class="btn btn-ghost"><i data-lucide="bookmark" class="h-4 w-4"></i> Salvar no histórico</button>
+                    <button type="button" onclick="enviarWhatsApp('servicos')" class="btn btn-whatsapp"><i data-lucide="message-circle" class="h-4 w-4"></i> WhatsApp</button>
+                    <button type="button" onclick="gerarPDF('servicos')" class="btn btn-success"><i data-lucide="file-down" class="h-4 w-4"></i> Gerar PDF</button>
                 </div>
             </div>
 
-            <!-- Aba de Vendas -->
-            <div id="vendas" class="tab-content space-y-6 hidden">
-                 <div class="bg-white p-6 rounded-lg shadow-sm">
-                    <h2 class="text-xl font-semibold mb-4 text-slate-700">1. Informações Gerais</h2>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <input type="text" id="cliente-vendas" placeholder="Nome do cliente" class="w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-indigo-300 transition-shadow" aria-label="Nome do Cliente">
-                        <input type="date" id="data-vendas" class="w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-indigo-300 transition-shadow" aria-label="Data do Orçamento">
-                        <input type="text" id="cnpjcpf-vendas" placeholder="CNPJ/CPF (Opcional)" class="w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-indigo-300 transition-shadow" aria-label="CNPJ/CPF">
-                        <input type="text" id="telefone-vendas" placeholder="Telefone (Opcional)" class="w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-indigo-300 transition-shadow" aria-label="Telefone">
+            <!-- VENDAS -->
+            <div id="vendas" class="tab-content space-y-4 sm:space-y-6 hidden">
+                <div class="card">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="section-title !mb-4"><span class="section-num">1</span> Cliente</h2>
+                        <span class="text-xs font-mono text-navy bg-brand-soft px-2 py-1 rounded" id="numero-vendas">—</span>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                            <label class="label" for="cliente-vendas">Nome do cliente *</label>
+                            <input type="text" id="cliente-vendas" placeholder="Ex.: João da Silva" class="field" autocomplete="name">
+                        </div>
+                        <div>
+                            <label class="label" for="data-vendas">Data</label>
+                            <input type="date" id="data-vendas" class="field">
+                        </div>
+                        <div>
+                            <label class="label" for="cnpjcpf-vendas">CNPJ / CPF</label>
+                            <input type="text" id="cnpjcpf-vendas" placeholder="000.000.000-00" class="field" inputmode="numeric" maxlength="18" oninput="aplicarMascaraDocumento(this)">
+                        </div>
+                        <div>
+                            <label class="label" for="telefone-vendas">Telefone / WhatsApp</label>
+                            <input type="tel" id="telefone-vendas" placeholder="(37) 99999-9999" class="field" inputmode="tel" maxlength="15" oninput="aplicarMascaraTelefone(this)">
+                        </div>
                     </div>
                 </div>
 
-                <div class="bg-white p-6 rounded-lg shadow-sm">
-                    <h2 class="text-xl font-semibold mb-4 text-slate-700">2. Adicionar Produto</h2>
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-                        <div class="md:col-span-2">
-                           <input type="text" id="produto" placeholder="Descrição do Produto" class="w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-indigo-300 transition-shadow" aria-label="Descrição do Produto">
+                <div class="card">
+                    <h2 class="section-title"><span class="section-num">2</span> Adicionar produto</h2>
+                    <div class="grid grid-cols-1 gap-3">
+                        <input type="text" id="produto" placeholder="Descrição do produto" class="field">
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="label">Quantidade</label>
+                                <div class="flex">
+                                    <button type="button" class="qty-btn rounded-l-xl border-r-0" onclick="ajustarQtd('vendas', -1)">−</button>
+                                    <input type="number" id="quantidade-vendas" value="1" min="1" class="field rounded-none border-x-0 text-center font-semibold">
+                                    <button type="button" class="qty-btn rounded-r-xl border-l-0" onclick="ajustarQtd('vendas', 1)">+</button>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="label">Valor unitário</label>
+                                <div class="input-group">
+                                    <span class="currency-symbol">R$</span>
+                                    <input type="text" id="valor-vendas" placeholder="0,00" class="field field-money" inputmode="numeric" autocomplete="off">
+                                </div>
+                            </div>
                         </div>
-                        <input type="number" id="quantidade-vendas" placeholder="Qtd" value="1" min="1" class="w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-indigo-300 transition-shadow" aria-label="Quantidade">
-                        <div class="input-group">
-                            <span class="currency-symbol">R$</span>
-                            <input type="number" id="valor-vendas" placeholder="Valor" step="0.01" min="0" class="w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-indigo-300 transition-shadow" aria-label="Valor Unitário">
-                        </div>
+                        <button type="button" onclick="adicionarProduto()" class="btn btn-primary w-full sm:w-auto">
+                            <i data-lucide="plus-circle" class="h-4 w-4"></i> Adicionar produto
+                        </button>
                     </div>
-                    <button onclick="adicionarProduto()" class="inline-flex items-center justify-center px-5 py-2.5 mt-4 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 ease-in-out hover:-translate-y-0.5 hover:shadow-lg">
-                        <i data-lucide="plus-circle" class="mr-2 h-4 w-4"></i> Adicionar
-                    </button>
                 </div>
-                
-                <div class="bg-white p-6 rounded-lg shadow-sm">
-                    <h2 class="text-xl font-semibold mb-4 text-slate-700">3. Itens do Orçamento</h2>
-                    <div class="overflow-x-auto rounded-lg border border-slate-200">
-                        <table class="min-w-full">
+
+                <div class="card">
+                    <h2 class="section-title"><span class="section-num">3</span> Itens</h2>
+                    <div class="overflow-x-auto rounded-xl border border-slate-200">
+                        <table class="min-w-full text-sm">
                             <thead class="bg-slate-50">
                                 <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Descrição</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Qtd</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Valor Unit.</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Total</th>
-                                    <th class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Ação</th>
+                                    <th class="px-3 sm:px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Descrição</th>
+                                    <th class="px-3 sm:px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Qtd</th>
+                                    <th class="px-3 sm:px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Valor</th>
+                                    <th class="px-3 sm:px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Total</th>
+                                    <th class="px-3 sm:px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase"></th>
                                 </tr>
                             </thead>
-                            <tbody id="vendas-tabela" class="bg-white divide-y divide-slate-200"></tbody>
+                            <tbody id="vendas-tabela" class="divide-y divide-slate-100"></tbody>
                         </table>
                     </div>
-                    <div class="mt-4 bg-slate-50 p-4 rounded-lg flex justify-end items-center">
-                        <span class="text-slate-600 font-medium">Total do Orçamento:</span>
-                        <div id="total-vendas" class="ml-4 text-2xl font-bold text-slate-800">R$ 0,00</div>
-                    </div>
-                </div>
-
-                <div class="bg-white p-6 rounded-lg shadow-sm">
-                    <h2 class="text-xl font-semibold mb-4 text-slate-700">4. Detalhes Finais</h2>
-                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <select id="formaPagamento-vendas" class="w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-indigo-300 transition-shadow" aria-label="Forma de Pagamento">
-                            <option value="">Forma de Pagamento...</option>
-                            <option value="À vista">À vista</option>
-                            <option value="Parcelado">Parcelado</option>
-                            <option value="Cartão de Crédito">Cartão de Crédito</option>
-                            <option value="PIX">PIX</option>
-                            <option value="Dinheiro">Dinheiro</option>
-                        </select>
-                        <input type="text" id="prazoEntrega-vendas" placeholder="Prazo de Execução/Entrega" class="w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-indigo-300 transition-shadow" aria-label="Prazo de Entrega">
-                        <div class="md:col-span-2">
-                            <textarea id="observacoes-vendas" rows="4" class="w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-indigo-300 transition-shadow" aria-label="Observações">Validade: 15 dias. Após este período, consulte-nos novamente.</textarea>
+                    <div class="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+                        <div>
+                            <label class="label">Desconto (R$)</label>
+                            <div class="input-group">
+                                <span class="currency-symbol">R$</span>
+                                <input type="text" id="desconto-vendas" placeholder="0,00" value="0,00" class="field field-money" inputmode="numeric" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="sm:col-span-2 total-box flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                            <div class="sub">
+                                <span>Subtotal: </span><span id="subtotal-vendas" class="font-semibold">R$ 0,00</span>
+                            </div>
+                            <div class="text-right">
+                                <div class="total-label">Total</div>
+                                <div id="total-vendas" class="total-value">R$ 0,00</div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="flex flex-col sm:flex-row gap-4 justify-end">
-                     <button onclick="limparFormulario('vendas')" class="inline-flex items-center justify-center px-5 py-2.5 border border-slate-300 text-sm font-medium rounded-md shadow-sm text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 ease-in-out hover:-translate-y-0.5 hover:shadow-lg">
-                        <i data-lucide="trash-2" class="mr-2 h-4 w-4"></i> Limpar Orçamento
-                    </button>
-                    <button onclick="gerarPDF('vendas')" class="inline-flex items-center justify-center px-5 py-2.5 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-all duration-200 ease-in-out hover:-translate-y-0.5 hover:shadow-lg">
-                        <i data-lucide="file-down" class="mr-2 h-4 w-4"></i> Gerar PDF
-                    </button>
+                <div class="card">
+                    <h2 class="section-title"><span class="section-num">4</span> Condições</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                            <label class="label" for="formaPagamento-vendas">Forma de pagamento</label>
+                            <select id="formaPagamento-vendas" class="field">
+                                <option value="">Forma de pagamento...</option>
+                                <option value="À vista">À vista</option>
+                                <option value="Parcelado">Parcelado</option>
+                                <option value="Cartão de Crédito">Cartão de Crédito</option>
+                                <option value="PIX">PIX</option>
+                                <option value="Dinheiro">Dinheiro</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="label" for="prazoEntrega-vendas">Prazo de entrega</label>
+                            <input type="text" id="prazoEntrega-vendas" placeholder="Prazo de entrega" class="field">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="label" for="observacoes-vendas">Observações</label>
+                            <textarea id="observacoes-vendas" rows="4" class="field" style="min-height:100px">Este orçamento não inclui serviço de dreno, parte elétrica e alvenaria.
+Este orçamento tem validade de 10 dias. Após este período, favor consulte-nos novamente.</textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="hidden md:flex flex-wrap gap-3 justify-end">
+                    <button type="button" onclick="limparFormulario('vendas')" class="btn btn-ghost"><i data-lucide="trash-2" class="h-4 w-4"></i> Limpar</button>
+                    <button type="button" onclick="salvarNoHistorico('vendas')" class="btn btn-ghost"><i data-lucide="bookmark" class="h-4 w-4"></i> Salvar no histórico</button>
+                    <button type="button" onclick="enviarWhatsApp('vendas')" class="btn btn-whatsapp"><i data-lucide="message-circle" class="h-4 w-4"></i> WhatsApp</button>
+                    <button type="button" onclick="gerarPDF('vendas')" class="btn btn-success"><i data-lucide="file-down" class="h-4 w-4"></i> Gerar PDF</button>
                 </div>
             </div>
         </main>
     </div>
 
-    <!-- Modal de Alerta/Confirmação -->
-    <div id="modal" class="fixed inset-0 bg-black bg-opacity-50 overflow-y-auto h-full w-full hidden z-50 flex items-center justify-center p-4">
-      <div class="relative mx-auto p-5 border w-full max-w-md shadow-lg rounded-md bg-white">
-        <div class="mt-3 text-center">
-          <div id="modal-icon" class="mx-auto flex items-center justify-center h-12 w-12 rounded-full"></div>
-          <h3 class="text-lg leading-6 font-medium text-slate-900 mt-4" id="modal-title"></h3>
-          <div class="mt-2 px-7 py-3">
-            <p class="text-sm text-slate-500" id="modal-message"></p>
-          </div>
-          <div id="modal-buttons" class="items-center px-4 py-3 space-x-4"></div>
+    <!-- Barra inferior mobile -->
+    <div class="mobile-bar">
+        <div class="flex items-center justify-between gap-2 mb-2">
+            <span class="text-xs text-slate-500">Total</span>
+            <span id="mobile-total" class="text-lg font-bold text-navy">R$ 0,00</span>
         </div>
-      </div>
+        <div class="grid grid-cols-4 gap-2">
+            <button type="button" onclick="limparFormulario(abaAtual)" class="btn btn-ghost !min-h-[44px] !px-2 !text-xs flex-col gap-0.5">
+                <i data-lucide="trash-2" class="h-4 w-4"></i>Limpar
+            </button>
+            <button type="button" onclick="salvarNoHistorico(abaAtual)" class="btn btn-ghost !min-h-[44px] !px-2 !text-xs flex-col gap-0.5">
+                <i data-lucide="bookmark" class="h-4 w-4"></i>Salvar
+            </button>
+            <button type="button" onclick="enviarWhatsApp(abaAtual)" class="btn btn-whatsapp !min-h-[44px] !px-2 !text-xs flex-col gap-0.5">
+                <i data-lucide="message-circle" class="h-4 w-4"></i>Zap
+            </button>
+            <button type="button" onclick="gerarPDF(abaAtual)" class="btn btn-success !min-h-[44px] !px-2 !text-xs flex-col gap-0.5">
+                <i data-lucide="file-down" class="h-4 w-4"></i>PDF
+            </button>
+        </div>
     </div>
 
+    <div id="toast" class="toast"></div>
 
-    <script>
-        // --- INICIALIZAÇÃO ---
+    <!-- Modal -->
+    <div id="modal" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center p-4">
+        <div class="relative w-full max-w-md bg-white rounded-2xl shadow-xl p-5">
+            <div class="text-center">
+                <div id="modal-icon" class="mx-auto flex items-center justify-center h-12 w-12 rounded-full"></div>
+                <h3 class="text-lg font-semibold text-slate-900 mt-3" id="modal-title"></h3>
+                <p class="text-sm text-slate-500 mt-2" id="modal-message"></p>
+                <div id="modal-buttons" class="mt-5 flex flex-col sm:flex-row gap-2 justify-center"></div>
+            </div>
+        </div>
+    </div>
+
+<script>
+const STORAGE = {
+    draftServicos: 'rj_orc_draft_servicos_v1',
+    draftVendas: 'rj_orc_draft_vendas_v1',
+    historico: 'rj_orc_historico_v1',
+    contador: 'rj_orc_contador_v1',
+    aba: 'rj_orc_aba_v1'
+};
+
+const EMPRESA = {
+    nome: 'RJ AR CONDICIONADO LTDA',
+    cnpj: '55.266.053/0001-40',
+    ie: '004901323.00-24',
+    endereco: 'Rua João Lourenço Gomide - Centro - Pains-MG',
+    tel: '(37) 99876-6121',
+    email: 'rjarcondicionado86@hotmail.com',
+    telWhats: '5537998766121'
+};
+
+const LOGO_BASE64 = 'data:image/png;base64,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';
+
+const OBSERVACOES_PADRAO = `Este orçamento não inclui serviço de dreno, parte elétrica e alvenaria.
+Este orçamento tem validade de 10 dias. Após este período, favor consulte-nos novamente.`;
+
+let abaAtual = 'servicos';
+let saveTimer = null;
+let historicoAberto = false;
+
+lucide.createIcons();
+
+/* ---------- Modal / Toast ---------- */
+const modal = document.getElementById('modal');
+const modalTitle = document.getElementById('modal-title');
+const modalMessage = document.getElementById('modal-message');
+const modalIcon = document.getElementById('modal-icon');
+const modalButtons = document.getElementById('modal-buttons');
+let confirmCallback = null;
+
+function showModal(title, message, type = 'alert', onConfirm) {
+    modalTitle.textContent = title;
+    modalMessage.textContent = message;
+    modalButtons.innerHTML = '';
+
+    if (type === 'alert') {
+        modalIcon.innerHTML = `<i data-lucide="alert-triangle" class="h-6 w-6 text-amber-600"></i>`;
+        modalIcon.className = 'mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-amber-100';
+        const btn = document.createElement('button');
+        btn.className = 'btn btn-primary w-full sm:w-auto';
+        btn.textContent = 'Entendi';
+        btn.onclick = () => modal.classList.add('hidden');
+        modalButtons.appendChild(btn);
+    } else {
+        modalIcon.innerHTML = `<i data-lucide="help-circle" class="h-6 w-6 text-navy"></i>`;
+        modalIcon.className = 'mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-brand-soft';
+        confirmCallback = onConfirm;
+        const cancel = document.createElement('button');
+        cancel.className = 'btn btn-ghost w-full sm:w-auto';
+        cancel.textContent = 'Cancelar';
+        cancel.onclick = () => modal.classList.add('hidden');
+        const ok = document.createElement('button');
+        ok.className = 'btn btn-primary w-full sm:w-auto';
+        ok.textContent = 'Confirmar';
+        ok.onclick = () => { modal.classList.add('hidden'); if (confirmCallback) confirmCallback(); };
+        modalButtons.appendChild(cancel);
+        modalButtons.appendChild(ok);
+    }
+    lucide.createIcons();
+    modal.classList.remove('hidden');
+}
+
+function toast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(el._t);
+    el._t = setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+/* ---------- Helpers ---------- */
+function formatarDocumento(valor) {
+    const digits = String(valor ?? '').replace(/\D/g, '').slice(0, 14);
+    if (!digits) return '';
+
+    // CPF: 000.000.000-00
+    if (digits.length <= 11) {
+        return digits
+            .replace(/(\d{3})(\d)/, '$1.$2')
+            .replace(/(\d{3})(\d)/, '$1.$2')
+            .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+    }
+
+    // CNPJ: 00.000.000/0000-00
+    return digits
+        .replace(/^(\d{2})(\d)/, '$1.$2')
+        .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
+        .replace(/\.(\d{3})(\d)/, '.$1/$2')
+        .replace(/(\d{4})(\d)/, '$1-$2');
+}
+
+function formatarTelefone(valor) {
+    const digits = String(valor ?? '').replace(/\D/g, '').slice(0, 11);
+    if (!digits) return '';
+    if (digits.length <= 10) {
+        return digits
+            .replace(/(\d{2})(\d)/, '($1) $2')
+            .replace(/(\d{4})(\d)/, '$1-$2');
+    }
+    return digits
+        .replace(/(\d{2})(\d)/, '($1) $2')
+        .replace(/(\d{5})(\d)/, '$1-$2');
+}
+
+function aplicarMascaraDocumento(el) {
+    el.value = formatarDocumento(el.value);
+    agendarSalvarRascunho();
+}
+
+function aplicarMascaraTelefone(el) {
+    el.value = formatarTelefone(el.value);
+    agendarSalvarRascunho();
+}
+
+function formatarValorParaExibicao(valor) {
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor || 0);
+}
+
+function formatarMoedaDigitando(valor) {
+    let digits = String(valor ?? '').replace(/\D/g, '');
+    if (!digits) return '';
+    digits = digits.slice(0, 11);
+    const cents = digits.padStart(3, '0');
+    let intPart = cents.slice(0, -2).replace(/^0+(?=\d)/, '');
+    if (!intPart) intPart = '0';
+    const decPart = cents.slice(-2);
+    const intFmt = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    return intFmt + ',' + decPart;
+}
+
+function parseMoney(text) {
+    if (typeof text === 'number') return text;
+    const raw = String(text ?? '').replace(/R\$\s?/g, '').trim();
+    if (!raw) return 0;
+    return parseFloat(raw.replace(/\./g, '').replace(',', '.')) || 0;
+}
+
+function aplicarMascaraMoeda(el) {
+    const formatted = formatarMoedaDigitando(el.value);
+    el.value = formatted;
+    const tipo = el.id.includes('vendas') ? 'vendas' : 'servicos';
+    if (el.id.startsWith('desconto-')) atualizarTotais(tipo);
+    agendarSalvarRascunho();
+}
+
+function openTab(tabName) {
+    abaAtual = tabName;
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
+    document.getElementById(tabName).classList.remove('hidden');
+    document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
+    document.getElementById(`tab-${tabName}`).classList.add('active');
+    localStorage.setItem(STORAGE.aba, tabName);
+    atualizarTotais(tabName);
+    lucide.createIcons();
+}
+
+function ajustarQtd(tipo, delta) {
+    const input = document.getElementById(`quantidade-${tipo}`);
+    let v = parseInt(input.value, 10) || 1;
+    v = Math.max(1, v + delta);
+    input.value = v;
+    agendarSalvarRascunho();
+}
+
+function gerarNumeroOrcamento() {
+    const ano = new Date().getFullYear();
+    let contador = parseInt(localStorage.getItem(STORAGE.contador) || '0', 10) + 1;
+    localStorage.setItem(STORAGE.contador, String(contador));
+    return `ORC-${ano}-${String(contador).padStart(4, '0')}`;
+}
+
+function garantirNumero(tipo) {
+    const el = document.getElementById(`numero-${tipo}`);
+    if (!el.dataset.numero || el.dataset.numero === '') {
+        const n = gerarNumeroOrcamento();
+        el.dataset.numero = n;
+        el.textContent = n;
+    }
+    return el.dataset.numero;
+}
+
+function resetNumero(tipo) {
+    const el = document.getElementById(`numero-${tipo}`);
+    const n = gerarNumeroOrcamento();
+    el.dataset.numero = n;
+    el.textContent = n;
+}
+
+/* ---------- Tabela vazia ---------- */
+function exibirMensagemTabelaVazia(tipo, mostrar) {
+    const tabelaBody = document.getElementById(`${tipo}-tabela`);
+    const idMensagem = `mensagem-tabela-vazia-${tipo}`;
+    const existente = document.getElementById(idMensagem);
+    if (mostrar) {
+        if (existente || !tabelaBody) return;
+        const row = tabelaBody.insertRow();
+        row.id = idMensagem;
+        const cell = row.insertCell();
+        cell.colSpan = tipo === 'servicos' ? 6 : 5;
+        cell.className = 'px-4 py-10 text-center text-slate-500';
+        cell.innerHTML = `<i data-lucide="info" class="mx-auto h-7 w-7 text-slate-400"></i><p class="mt-2 text-sm">Nenhum item adicionado ainda.</p>`;
         lucide.createIcons();
-        
-        // --- MODAL (Alerta e Confirmação) ---
-        const modal = document.getElementById('modal');
-        const modalTitle = document.getElementById('modal-title');
-        const modalMessage = document.getElementById('modal-message');
-        const modalIcon = document.getElementById('modal-icon');
-        const modalButtons = document.getElementById('modal-buttons');
-        let confirmCallback = null;
+    } else if (existente) {
+        existente.remove();
+    }
+}
 
-        function showModal(title, message, type = 'alert', onConfirm) {
-            modalTitle.textContent = title;
-            modalMessage.textContent = message;
-            modalButtons.innerHTML = ''; 
+function temItens(tipo) {
+    const rows = [...document.getElementById(`${tipo}-tabela`).rows];
+    return rows.some(r => !r.id.startsWith('mensagem-tabela-vazia'));
+}
 
-            if (type === 'alert') {
-                modalIcon.innerHTML = `<i data-lucide="alert-triangle" class="h-6 w-6 text-red-600"></i>`;
-                modalIcon.className = 'mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100';
-                const closeButton = document.createElement('button');
-                closeButton.className = "px-4 py-2 bg-red-500 text-white text-base font-medium rounded-md shadow-sm hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-300";
-                closeButton.textContent = 'Fechar';
-                closeButton.onclick = () => modal.classList.add('hidden');
-                modalButtons.appendChild(closeButton);
-            } else if (type === 'confirm') {
-                modalIcon.innerHTML = `<i data-lucide="help-circle" class="h-6 w-6 text-indigo-600"></i>`;
-                modalIcon.className = 'mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-indigo-100';
-                confirmCallback = onConfirm;
+function coletarItens(tipo) {
+    const rows = [...document.getElementById(`${tipo}-tabela`).rows].filter(r => !r.id.startsWith('mensagem-tabela-vazia'));
+    if (tipo === 'servicos') {
+        return rows.map(r => ({
+            codigo: r.cells[0].textContent,
+            descricao: r.cells[1].textContent,
+            qtd: parseFloat(r.cells[2].textContent),
+            valor: parseMoney(r.cells[3].textContent),
+            total: parseMoney(r.cells[4].textContent)
+        }));
+    }
+    return rows.map(r => ({
+        descricao: r.cells[0].textContent,
+        qtd: parseFloat(r.cells[1].textContent),
+        valor: parseMoney(r.cells[2].textContent),
+        total: parseMoney(r.cells[3].textContent)
+    }));
+}
 
-                const cancelButton = document.createElement('button');
-                cancelButton.className = "inline-flex items-center justify-center px-5 py-2.5 border border-slate-300 text-sm font-medium rounded-md shadow-sm text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 ease-in-out hover:-translate-y-0.5 hover:shadow-lg";
-                cancelButton.textContent = 'Cancelar';
-                cancelButton.onclick = () => modal.classList.add('hidden');
+function atualizarTotais(tipo) {
+    const itens = coletarItens(tipo);
+    const subtotal = itens.reduce((s, i) => s + i.total, 0);
+    let desconto = parseMoney(document.getElementById(`desconto-${tipo}`).value);
+    if (desconto > subtotal) desconto = subtotal;
+    const total = Math.max(0, subtotal - desconto);
+    document.getElementById(`subtotal-${tipo}`).textContent = formatarValorParaExibicao(subtotal);
+    document.getElementById(`total-${tipo}`).textContent = formatarValorParaExibicao(total);
+    if (tipo === abaAtual) {
+        document.getElementById('mobile-total').textContent = formatarValorParaExibicao(total);
+    }
+    return { subtotal, desconto, total };
+}
 
-                const confirmButton = document.createElement('button');
-                confirmButton.className = "inline-flex items-center justify-center px-5 py-2.5 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 ease-in-out hover:-translate-y-0.5 hover:shadow-lg";
-                confirmButton.textContent = 'Confirmar';
-                confirmButton.onclick = () => {
-                    modal.classList.add('hidden');
-                    if (confirmCallback) confirmCallback();
-                };
-                modalButtons.appendChild(cancelButton);
-                modalButtons.appendChild(confirmButton);
-            }
-            lucide.createIcons();
-            modal.classList.remove('hidden');
+function botaoRemover(tipo) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'text-red-600 hover:text-red-800 p-2';
+    btn.setAttribute('aria-label', 'Remover');
+    btn.innerHTML = `<i data-lucide="trash-2" class="h-5 w-5"></i>`;
+    btn.onclick = function () { removerItem(this, tipo); };
+    return btn;
+}
+
+function adicionarServico() {
+    const servicoSelect = document.getElementById('servico');
+    const quantidadeInput = document.getElementById('quantidade-servicos');
+    const valorInput = document.getElementById('valor-servicos');
+    const quantidade = parseFloat(quantidadeInput.value);
+    const valor = parseMoney(valorInput.value);
+    const servicoId = servicoSelect.value;
+
+    if (!servicoId || isNaN(quantidade) || quantidade <= 0 || !valorInput.value || valor < 0) {
+        showModal('Dados incompletos', 'Selecione o serviço e preencha quantidade e valor.', 'alert');
+        return;
+    }
+
+    garantirNumero('servicos');
+    exibirMensagemTabelaVazia('servicos', false);
+    const tabelaBody = document.getElementById('servicos-tabela');
+    const row = tabelaBody.insertRow();
+    row.className = 'text-sm text-slate-800';
+
+    const texto = servicoSelect.options[servicoSelect.selectedIndex].text;
+    const descricao = texto.includes(' — ') ? texto.split(' — ')[1] : (texto.includes(' - ') ? texto.split(' - ')[1] : texto);
+    const total = quantidade * valor;
+
+    row.insertCell().outerHTML = `<td class="px-3 sm:px-4 py-3 whitespace-nowrap font-mono text-xs">${servicoId}</td>`;
+    row.insertCell().outerHTML = `<td class="px-3 sm:px-4 py-3">${descricao}</td>`;
+    row.insertCell().outerHTML = `<td class="px-3 sm:px-4 py-3 whitespace-nowrap">${quantidade}</td>`;
+    row.insertCell().outerHTML = `<td class="px-3 sm:px-4 py-3 whitespace-nowrap">${formatarValorParaExibicao(valor)}</td>`;
+    row.insertCell().outerHTML = `<td class="px-3 sm:px-4 py-3 whitespace-nowrap font-semibold">${formatarValorParaExibicao(total)}</td>`;
+    const cell = row.insertCell();
+    cell.className = 'px-2 py-3 text-right';
+    cell.appendChild(botaoRemover('servicos'));
+
+    lucide.createIcons();
+    atualizarTotais('servicos');
+    servicoSelect.value = '';
+    quantidadeInput.value = '1';
+    valorInput.value = '';
+    valorInput.focus();
+    agendarSalvarRascunho();
+    toast('Serviço adicionado');
+}
+
+function adicionarProduto() {
+    const produtoInput = document.getElementById('produto');
+    const quantidadeInput = document.getElementById('quantidade-vendas');
+    const valorInput = document.getElementById('valor-vendas');
+    const quantidade = parseFloat(quantidadeInput.value);
+    const valor = parseMoney(valorInput.value);
+    const produtoDesc = produtoInput.value.trim();
+
+    if (!produtoDesc || isNaN(quantidade) || quantidade <= 0 || !valorInput.value || valor < 0) {
+        showModal('Dados incompletos', 'Preencha descrição, quantidade e valor.', 'alert');
+        return;
+    }
+
+    garantirNumero('vendas');
+    exibirMensagemTabelaVazia('vendas', false);
+    const tabelaBody = document.getElementById('vendas-tabela');
+    const row = tabelaBody.insertRow();
+    row.className = 'text-sm text-slate-800';
+    const total = quantidade * valor;
+
+    row.insertCell().outerHTML = `<td class="px-3 sm:px-4 py-3">${produtoDesc}</td>`;
+    row.insertCell().outerHTML = `<td class="px-3 sm:px-4 py-3 whitespace-nowrap">${quantidade}</td>`;
+    row.insertCell().outerHTML = `<td class="px-3 sm:px-4 py-3 whitespace-nowrap">${formatarValorParaExibicao(valor)}</td>`;
+    row.insertCell().outerHTML = `<td class="px-3 sm:px-4 py-3 whitespace-nowrap font-semibold">${formatarValorParaExibicao(total)}</td>`;
+    const cell = row.insertCell();
+    cell.className = 'px-2 py-3 text-right';
+    cell.appendChild(botaoRemover('vendas'));
+
+    lucide.createIcons();
+    atualizarTotais('vendas');
+    produtoInput.value = '';
+    quantidadeInput.value = '1';
+    valorInput.value = '';
+    produtoInput.focus();
+    agendarSalvarRascunho();
+    toast('Produto adicionado');
+}
+
+function removerItem(button, tipo) {
+    button.closest('tr').remove();
+    if (!temItens(tipo)) exibirMensagemTabelaVazia(tipo, true);
+    atualizarTotais(tipo);
+    agendarSalvarRascunho();
+}
+
+function iniciarNovoOrcamento(tipo) {
+    document.getElementById(`cliente-${tipo}`).value = '';
+    document.getElementById(`data-${tipo}`).value = new Date().toISOString().split('T')[0];
+    document.getElementById(`cnpjcpf-${tipo}`).value = '';
+    document.getElementById(`telefone-${tipo}`).value = '';
+    document.getElementById(`${tipo}-tabela`).innerHTML = '';
+    document.getElementById(`desconto-${tipo}`).value = '0,00';
+    document.getElementById(`formaPagamento-${tipo}`).value = '';
+    document.getElementById(`prazoEntrega-${tipo}`).value = '';
+    document.getElementById(`observacoes-${tipo}`).value = OBSERVACOES_PADRAO;
+    if (tipo === 'servicos') {
+        document.getElementById('servico').value = '';
+        document.getElementById('quantidade-servicos').value = '1';
+        document.getElementById('valor-servicos').value = '';
+    } else {
+        document.getElementById('produto').value = '';
+        document.getElementById('quantidade-vendas').value = '1';
+        document.getElementById('valor-vendas').value = '';
+    }
+    exibirMensagemTabelaVazia(tipo, true);
+    resetNumero(tipo);
+    atualizarTotais(tipo);
+    salvarRascunhoAgora(tipo);
+}
+
+function limparFormulario(tipo) {
+
+    showModal('Limpar orçamento', 'Apagar todos os campos e itens deste orçamento?', 'confirm', () => {
+        document.getElementById(`cliente-${tipo}`).value = '';
+        document.getElementById(`data-${tipo}`).value = new Date().toISOString().split('T')[0];
+        document.getElementById(`cnpjcpf-${tipo}`).value = '';
+        document.getElementById(`telefone-${tipo}`).value = '';
+        document.getElementById(`${tipo}-tabela`).innerHTML = '';
+        document.getElementById(`desconto-${tipo}`).value = '0,00';
+        document.getElementById(`formaPagamento-${tipo}`).value = '';
+        document.getElementById(`prazoEntrega-${tipo}`).value = '';
+        document.getElementById(`observacoes-${tipo}`).value = OBSERVACOES_PADRAO;
+        if (tipo === 'servicos') {
+            document.getElementById('servico').value = '';
+            document.getElementById('quantidade-servicos').value = '1';
+            document.getElementById('valor-servicos').value = '';
+        } else {
+            document.getElementById('produto').value = '';
+            document.getElementById('quantidade-vendas').value = '1';
+            document.getElementById('valor-vendas').value = '';
         }
+        exibirMensagemTabelaVazia(tipo, true);
+        resetNumero(tipo);
+        atualizarTotais(tipo);
+        salvarRascunhoAgora(tipo);
+        toast('Orçamento limpo');
+    });
+}
 
-        // --- LÓGICA DAS ABAS ---
-        function openTab(tabName) {
-            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
-            document.getElementById(tabName).classList.remove('hidden');
-            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
-            document.getElementById(`tab-${tabName}`).classList.add('active');
-            lucide.createIcons();
+/* ---------- Rascunho / Histórico (localStorage) ---------- */
+function snapshot(tipo) {
+    return {
+        tipo,
+        numero: document.getElementById(`numero-${tipo}`).dataset.numero || '',
+        cliente: document.getElementById(`cliente-${tipo}`).value,
+        data: document.getElementById(`data-${tipo}`).value,
+        cnpjcpf: document.getElementById(`cnpjcpf-${tipo}`).value,
+        telefone: document.getElementById(`telefone-${tipo}`).value,
+        desconto: parseMoney(document.getElementById(`desconto-${tipo}`).value),
+        formaPagamento: document.getElementById(`formaPagamento-${tipo}`).value,
+        prazoEntrega: document.getElementById(`prazoEntrega-${tipo}`).value,
+        observacoes: document.getElementById(`observacoes-${tipo}`).value,
+        itens: coletarItens(tipo),
+        savedAt: new Date().toISOString()
+    };
+}
+
+function renderItens(tipo, itens) {
+    const tabela = document.getElementById(`${tipo}-tabela`);
+    tabela.innerHTML = '';
+    if (!itens || !itens.length) {
+        exibirMensagemTabelaVazia(tipo, true);
+        return;
+    }
+    exibirMensagemTabelaVazia(tipo, false);
+    itens.forEach(item => {
+        const row = tabela.insertRow();
+        row.className = 'text-sm text-slate-800';
+        if (tipo === 'servicos') {
+            row.insertCell().outerHTML = `<td class="px-3 sm:px-4 py-3 whitespace-nowrap font-mono text-xs">${item.codigo}</td>`;
+            row.insertCell().outerHTML = `<td class="px-3 sm:px-4 py-3">${item.descricao}</td>`;
+            row.insertCell().outerHTML = `<td class="px-3 sm:px-4 py-3 whitespace-nowrap">${item.qtd}</td>`;
+            row.insertCell().outerHTML = `<td class="px-3 sm:px-4 py-3 whitespace-nowrap">${formatarValorParaExibicao(item.valor)}</td>`;
+            row.insertCell().outerHTML = `<td class="px-3 sm:px-4 py-3 whitespace-nowrap font-semibold">${formatarValorParaExibicao(item.total)}</td>`;
+        } else {
+            row.insertCell().outerHTML = `<td class="px-3 sm:px-4 py-3">${item.descricao}</td>`;
+            row.insertCell().outerHTML = `<td class="px-3 sm:px-4 py-3 whitespace-nowrap">${item.qtd}</td>`;
+            row.insertCell().outerHTML = `<td class="px-3 sm:px-4 py-3 whitespace-nowrap">${formatarValorParaExibicao(item.valor)}</td>`;
+            row.insertCell().outerHTML = `<td class="px-3 sm:px-4 py-3 whitespace-nowrap font-semibold">${formatarValorParaExibicao(item.total)}</td>`;
         }
+        const cell = row.insertCell();
+        cell.className = 'px-2 py-3 text-right';
+        cell.appendChild(botaoRemover(tipo));
+    });
+    lucide.createIcons();
+}
 
-        // --- FORMATAÇÕES E MÁSCARAS ---
-        function formatarDocumento(valor) {
-            valor = valor.replace(/\D/g, '');
-            if (valor.length <= 11) {
-                return valor.replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+function aplicarSnapshot(data, novoNumero = false) {
+    const tipo = data.tipo;
+    openTab(tipo);
+    const numEl = document.getElementById(`numero-${tipo}`);
+    if (novoNumero) {
+        resetNumero(tipo);
+    } else if (data.numero) {
+        numEl.dataset.numero = data.numero;
+        numEl.textContent = data.numero;
+    } else {
+        garantirNumero(tipo);
+    }
+    document.getElementById(`cliente-${tipo}`).value = data.cliente || '';
+    document.getElementById(`data-${tipo}`).value = data.data || new Date().toISOString().split('T')[0];
+    document.getElementById(`cnpjcpf-${tipo}`).value = data.cnpjcpf || '';
+    document.getElementById(`telefone-${tipo}`).value = data.telefone || '';
+    document.getElementById(`desconto-${tipo}`).value = formatarMoedaDigitando(String(Math.round(parseMoney(data.desconto || 0) * 100))) || '0,00';
+    document.getElementById(`formaPagamento-${tipo}`).value = data.formaPagamento || '';
+    document.getElementById(`prazoEntrega-${tipo}`).value = data.prazoEntrega || '';
+    document.getElementById(`observacoes-${tipo}`).value = data.observacoes || OBSERVACOES_PADRAO;
+    renderItens(tipo, data.itens || []);
+    atualizarTotais(tipo);
+    salvarRascunhoAgora(tipo);
+}
+
+function salvarRascunhoAgora(tipo) {
+    try {
+        const key = tipo === 'servicos' ? STORAGE.draftServicos : STORAGE.draftVendas;
+        localStorage.setItem(key, JSON.stringify(snapshot(tipo)));
+        const status = document.getElementById('draft-status');
+        const agora = new Date();
+        status.textContent = `Rascunho salvo às ${agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
+    } catch (e) {
+        console.warn(e);
+        document.getElementById('draft-status').textContent = 'Não foi possível salvar (armazenamento cheio?)';
+    }
+}
+
+function agendarSalvarRascunho() {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => salvarRascunhoAgora(abaAtual), 400);
+}
+
+function carregarRascunhos() {
+    ['servicos', 'vendas'].forEach(tipo => {
+        const key = tipo === 'servicos' ? STORAGE.draftServicos : STORAGE.draftVendas;
+        const raw = localStorage.getItem(key);
+        if (!raw) {
+            exibirMensagemTabelaVazia(tipo, true);
+            garantirNumero(tipo);
+            return;
+        }
+        try {
+            const data = JSON.parse(raw);
+            const numEl = document.getElementById(`numero-${tipo}`);
+            if (data.numero) {
+                numEl.dataset.numero = data.numero;
+                numEl.textContent = data.numero;
             } else {
-                return valor.slice(0, 14).replace(/(\d{2})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1/$2').replace(/(\d{4})(\d{1,2})$/, '$1-$2');
+                garantirNumero(tipo);
             }
+            document.getElementById(`cliente-${tipo}`).value = data.cliente || '';
+            document.getElementById(`data-${tipo}`).value = data.data || new Date().toISOString().split('T')[0];
+            document.getElementById(`cnpjcpf-${tipo}`).value = data.cnpjcpf || '';
+            document.getElementById(`telefone-${tipo}`).value = data.telefone || '';
+            document.getElementById(`desconto-${tipo}`).value = formatarMoedaDigitando(String(Math.round(parseMoney(data.desconto || 0) * 100))) || '0,00';
+            document.getElementById(`formaPagamento-${tipo}`).value = data.formaPagamento || '';
+            document.getElementById(`prazoEntrega-${tipo}`).value = data.prazoEntrega || '';
+            document.getElementById(`observacoes-${tipo}`).value = data.observacoes || OBSERVACOES_PADRAO;
+            renderItens(tipo, data.itens || []);
+            atualizarTotais(tipo);
+        } catch {
+            exibirMensagemTabelaVazia(tipo, true);
+            garantirNumero(tipo);
+        }
+    });
+}
+
+function getHistorico() {
+    try {
+        return JSON.parse(localStorage.getItem(STORAGE.historico) || '[]');
+    } catch {
+        return [];
+    }
+}
+
+function setHistorico(list) {
+    localStorage.setItem(STORAGE.historico, JSON.stringify(list.slice(0, 40)));
+}
+
+function salvarNoHistorico(tipo) {
+    if (!temItens(tipo)) {
+        showModal('Nada para salvar', 'Adicione pelo menos um item antes de salvar no histórico.', 'alert');
+        return;
+    }
+    const data = snapshot(tipo);
+    if (!data.cliente.trim()) {
+        showModal('Cliente em branco', 'Preencha o nome do cliente para identificar no histórico.', 'alert');
+        return;
+    }
+    if (!data.numero) data.numero = garantirNumero(tipo);
+    const list = getHistorico();
+    const idx = list.findIndex(h => h.numero === data.numero && h.tipo === tipo);
+    if (idx >= 0) list[idx] = data;
+    else list.unshift(data);
+    setHistorico(list);
+    renderHistorico();
+    toast('Salvo no histórico deste aparelho');
+}
+
+function renderHistorico() {
+    const list = getHistorico();
+    document.getElementById('historico-count').textContent = String(list.length);
+    const box = document.getElementById('historico-lista');
+    if (!list.length) {
+        box.innerHTML = `<p class="text-sm text-slate-500 py-2">Nenhum orçamento no histórico ainda.</p>`;
+        return;
+    }
+    box.innerHTML = list.map((h, i) => {
+        const when = new Date(h.savedAt).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
+        const tot = (h.itens || []).reduce((s, it) => s + (it.total || 0), 0) - (parseFloat(h.desconto) || 0);
+        return `<div class="history-item border border-slate-200 rounded-xl p-3 flex flex-col sm:flex-row sm:items-center gap-2 justify-between">
+            <div class="min-w-0">
+                <div class="font-semibold text-slate-800 truncate">${h.cliente || 'Sem cliente'} <span class="font-normal text-xs text-slate-400">${h.numero || ''}</span></div>
+                <div class="text-xs text-slate-500">${h.tipo === 'servicos' ? 'Serviços' : 'Vendas'} · ${when} · ${formatarValorParaExibicao(Math.max(0, tot))}</div>
+            </div>
+            <div class="flex gap-2 shrink-0">
+                <button type="button" class="btn btn-ghost !min-h-[40px] !px-3 !text-xs" onclick="abrirHistorico(${i}, false)">Abrir</button>
+                <button type="button" class="btn btn-ghost !min-h-[40px] !px-3 !text-xs" onclick="abrirHistorico(${i}, true)">Duplicar</button>
+                <button type="button" class="btn btn-ghost !min-h-[40px] !px-3 !text-xs text-red-600" onclick="apagarHistorico(${i})">Apagar</button>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function abrirHistorico(index, duplicar) {
+    const list = getHistorico();
+    const item = list[index];
+    if (!item) return;
+    showModal(duplicar ? 'Duplicar orçamento' : 'Abrir orçamento',
+        duplicar ? 'Criar uma cópia como orçamento novo?' : 'Substituir o rascunho atual por este orçamento?',
+        'confirm', () => {
+            aplicarSnapshot(item, duplicar);
+            toast(duplicar ? 'Cópia criada' : 'Orçamento aberto');
+        });
+}
+
+function apagarHistorico(index) {
+    showModal('Apagar', 'Remover este orçamento do histórico?', 'confirm', () => {
+        const list = getHistorico();
+        list.splice(index, 1);
+        setHistorico(list);
+        renderHistorico();
+        toast('Removido do histórico');
+    });
+}
+
+function toggleHistorico() {
+    historicoAberto = !historicoAberto;
+    document.getElementById('historico-panel').classList.toggle('open', historicoAberto);
+    document.getElementById('historico-chevron').style.transform = historicoAberto ? 'rotate(180deg)' : '';
+}
+
+/* ---------- WhatsApp ---------- */
+function montarTextoWhatsApp(tipo) {
+    const { subtotal, desconto, total } = atualizarTotais(tipo);
+    const cliente = document.getElementById(`cliente-${tipo}`).value || 'Cliente';
+    const numero = document.getElementById(`numero-${tipo}`).dataset.numero || '';
+    const data = document.getElementById(`data-${tipo}`).value;
+    const dataFmt = data ? new Date(data + 'T00:00:00').toLocaleDateString('pt-BR') : '';
+    const pagamento = document.getElementById(`formaPagamento-${tipo}`).value;
+    const prazo = document.getElementById(`prazoEntrega-${tipo}`).value;
+    const itens = coletarItens(tipo);
+
+    let msg = `*${EMPRESA.nome}*\n`;
+    msg += `Orçamento ${numero}${dataFmt ? ' · ' + dataFmt : ''}\n`;
+    msg += `Cliente: *${cliente}*\n\n`;
+    msg += `*Itens:*\n`;
+    itens.forEach((it, i) => {
+        msg += `${i + 1}. ${it.descricao} — ${it.qtd}x ${formatarValorParaExibicao(it.valor)} = *${formatarValorParaExibicao(it.total)}*\n`;
+    });
+    msg += `\nSubtotal: ${formatarValorParaExibicao(subtotal)}`;
+    if (desconto > 0) msg += `\nDesconto: ${formatarValorParaExibicao(desconto)}`;
+    msg += `\n*TOTAL: ${formatarValorParaExibicao(total)}*`;
+    if (pagamento) msg += `\nPagamento: ${pagamento}`;
+    if (prazo) msg += `\nPrazo: ${prazo}`;
+    let obsZap = (document.getElementById(`observacoes-${tipo}`).value || '').trim() || OBSERVACOES_PADRAO;
+    msg += `\n\n*Observações:*\n${obsZap}`;
+    msg += `\n\nTel: ${EMPRESA.tel}`;
+    return msg;
+}
+
+function enviarWhatsApp(tipo) {
+    if (!temItens(tipo)) {
+        showModal('Orçamento vazio', 'Adicione itens antes de enviar pelo WhatsApp.', 'alert');
+        return;
+    }
+    garantirNumero(tipo);
+    const msg = montarTextoWhatsApp(tipo);
+    const telCliente = document.getElementById(`telefone-${tipo}`).value.replace(/\D/g, '');
+    let url;
+    if (telCliente.length >= 10) {
+        const com55 = telCliente.startsWith('55') ? telCliente : '55' + telCliente;
+        url = `https://wa.me/${com55}?text=${encodeURIComponent(msg)}`;
+    } else {
+        url = `https://wa.me/?text=${encodeURIComponent(msg)}`;
+    }
+    window.open(url, '_blank');
+}
+
+/* ---------- PDF profissional ---------- */
+function gerarPDF(tipo) {
+    try {
+        if (!temItens(tipo)) {
+            showModal('Orçamento vazio', 'Adicione pelo menos um item antes de gerar o PDF.', 'alert');
+            return;
+        }
+        const cliente = document.getElementById(`cliente-${tipo}`).value.trim();
+        if (!cliente) {
+            showModal('Cliente obrigatório', 'Informe o nome do cliente para gerar o PDF.', 'alert');
+            return;
         }
 
-        function formatarTelefone(valor) {
-            valor = valor.replace(/\D/g, '');
-            if (valor.length > 11) valor = valor.slice(0, 11);
-            return valor.replace(/(\d{2})(\d)/, '($1) $2').replace(/(\d{5})(\d)/, '$1-$2');
-        }
-        
-        function formatarValorParaExibicao(valor) {
-            return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor);
-        }
+        const numero = garantirNumero(tipo);
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+        const pageW = doc.internal.pageSize.getWidth();
+        const pageH = doc.internal.pageSize.getHeight();
+        const margin = 14;
+        const brand = [3, 21, 47]; // navy logo
+        const accent = [227, 28, 40]; // red logo
 
-        function exibirMensagemTabelaVazia(tipo, mostrar) {
-            const tabelaBody = document.getElementById(`${tipo}-tabela`);
-            const idMensagem = `mensagem-tabela-vazia-${tipo}`;
-            const mensagemExistente = document.getElementById(idMensagem);
+        const data = document.getElementById(`data-${tipo}`).value;
+        const dataFmt = data ? new Date(data + 'T00:00:00').toLocaleDateString('pt-BR') : '—';
+        const cnpjcpf = document.getElementById(`cnpjcpf-${tipo}`).value;
+        const telefone = document.getElementById(`telefone-${tipo}`).value;
+        const formaPagamento = document.getElementById(`formaPagamento-${tipo}`).value || 'A combinar';
+        const prazoEntrega = document.getElementById(`prazoEntrega-${tipo}`).value || 'A combinar';
+        let observacoes = (document.getElementById(`observacoes-${tipo}`).value || '').trim();
+        if (!observacoes) observacoes = OBSERVACOES_PADRAO;
+        else if (!observacoes.includes('não inclui serviço de dreno')) {
+            observacoes = OBSERVACOES_PADRAO + '\n' + observacoes;
+        }
+        const { subtotal, desconto, total } = atualizarTotais(tipo);
+        const itens = coletarItens(tipo);
 
-            if (mostrar) {
-                if (mensagemExistente || !tabelaBody) return;
-                const novaLinha = tabelaBody.insertRow();
-                novaLinha.id = idMensagem;
-                const cell = novaLinha.insertCell();
-                cell.colSpan = 6;
-                cell.className = 'px-6 py-10 text-center text-slate-500';
-                cell.innerHTML = `<i data-lucide="info" class="mx-auto h-8 w-8 text-slate-400"></i><p class="mt-2">Nenhum item adicionado ainda.</p>`;
-                lucide.createIcons();
-            } else {
-                if (mensagemExistente) {
-                    mensagemExistente.remove();
-                }
+        // Cabeçalho branco com logo
+        doc.setFillColor(255, 255, 255);
+        doc.rect(0, 0, pageW, 36, 'F');
+        try {
+            doc.addImage(LOGO_BASE64, 'PNG', margin, 6, 42, 22);
+        } catch (e) {
+            console.warn('Logo PDF:', e);
+        }
+        doc.setTextColor(...brand);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(11);
+        doc.text(EMPRESA.nome, margin + 46, 12);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7.5);
+        doc.setTextColor(71, 85, 105);
+        doc.text(`CNPJ: ${EMPRESA.cnpj}  |  IE: ${EMPRESA.ie}`, margin + 46, 18);
+        doc.text(EMPRESA.endereco, margin + 46, 23);
+        doc.text(`${EMPRESA.tel}  ·  ${EMPRESA.email}`, margin + 46, 28);
+        // linha vermelha da marca
+        doc.setFillColor(...accent);
+        doc.rect(0, 34, pageW, 2.2, 'F');
+
+        // Título + número
+        doc.setTextColor(...brand);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(13);
+        doc.text(tipo === 'servicos' ? 'ORÇAMENTO DE SERVIÇOS' : 'ORÇAMENTO DE VENDAS', margin, 46);
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(71, 85, 105);
+        doc.text(`Nº ${numero}`, pageW - margin, 42, { align: 'right' });
+        doc.text(`Data: ${dataFmt}`, pageW - margin, 47, { align: 'right' });
+
+        // Caixa cliente
+        let y = 54;
+        doc.setDrawColor(226, 232, 240);
+        doc.setFillColor(248, 250, 252);
+        doc.roundedRect(margin, y, pageW - margin * 2, cnpjcpf || telefone ? 22 : 14, 2, 2, 'FD');
+        doc.setTextColor(15, 23, 42);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(9);
+        doc.text('CLIENTE', margin + 3, y + 5);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(11);
+        doc.text(cliente, margin + 3, y + 11);
+        let cy = y + 11;
+        doc.setFontSize(8);
+        doc.setTextColor(71, 85, 105);
+        if (cnpjcpf) { cy += 4; doc.text(`Documento: ${cnpjcpf}`, margin + 3, cy); }
+        if (telefone) { cy += 4; doc.text(`Telefone: ${telefone}`, margin + 3, cy); }
+
+        const head = tipo === 'servicos'
+            ? [['Cód.', 'Descrição', 'Qtd', 'Valor unit.', 'Total']]
+            : [['Descrição', 'Qtd', 'Valor unit.', 'Total']];
+        const body = tipo === 'servicos'
+            ? itens.map(i => [i.codigo, i.descricao, String(i.qtd), formatarValorParaExibicao(i.valor), formatarValorParaExibicao(i.total)])
+            : itens.map(i => [i.descricao, String(i.qtd), formatarValorParaExibicao(i.valor), formatarValorParaExibicao(i.total)]);
+
+        doc.autoTable({
+            startY: y + (cnpjcpf || telefone ? 28 : 20),
+            head,
+            body,
+            theme: 'grid',
+            headStyles: {
+                fillColor: brand,
+                textColor: 255,
+                fontStyle: 'bold',
+                fontSize: 8,
+                halign: 'left'
+            },
+            styles: { font: 'helvetica', fontSize: 8, cellPadding: 2.5, textColor: [30, 41, 59], lineColor: [226, 232, 240], lineWidth: 0.2 },
+            alternateRowStyles: { fillColor: [248, 250, 252] },
+            columnStyles: tipo === 'servicos'
+                ? { 0: { cellWidth: 12 }, 2: { halign: 'center', cellWidth: 14 }, 3: { halign: 'right', cellWidth: 28 }, 4: { halign: 'right', cellWidth: 28, fontStyle: 'bold' } }
+                : { 1: { halign: 'center', cellWidth: 14 }, 2: { halign: 'right', cellWidth: 30 }, 3: { halign: 'right', cellWidth: 30, fontStyle: 'bold' } },
+            margin: { left: margin, right: margin },
+            didDrawPage: function (data) {
+                const pageCount = doc.internal.getNumberOfPages();
+                doc.setFontSize(7);
+                doc.setTextColor(148, 163, 184);
+                doc.text(`Página ${data.pageNumber} de ${pageCount}`, margin, pageH - 8);
+                doc.text(EMPRESA.nome, pageW - margin, pageH - 8, { align: 'right' });
+                // linha inferior
+                doc.setDrawColor(...brand);
+                doc.setLineWidth(0.6);
+                doc.line(margin, pageH - 12, pageW - margin, pageH - 12);
             }
+        });
+
+        let finalY = doc.autoTable.previous.finalY + 8;
+
+        // Totais
+        const boxW = 70;
+        const boxX = pageW - margin - boxW;
+        if (finalY > pageH - 70) { doc.addPage(); finalY = 20; }
+
+        doc.setFillColor(248, 250, 252);
+        doc.setDrawColor(226, 232, 240);
+        doc.roundedRect(boxX, finalY, boxW, desconto > 0 ? 28 : 20, 2, 2, 'FD');
+        doc.setFontSize(9);
+        doc.setTextColor(71, 85, 105);
+        doc.setFont('helvetica', 'normal');
+        let ty = finalY + 7;
+        doc.text('Subtotal', boxX + 3, ty);
+        doc.text(formatarValorParaExibicao(subtotal), boxX + boxW - 3, ty, { align: 'right' });
+        if (desconto > 0) {
+            ty += 6;
+            doc.text('Desconto', boxX + 3, ty);
+            doc.text(`- ${formatarValorParaExibicao(desconto)}`, boxX + boxW - 3, ty, { align: 'right' });
         }
+        ty += 8;
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(...brand);
+        doc.setFontSize(11);
+        doc.text('TOTAL', boxX + 3, ty);
+        doc.text(formatarValorParaExibicao(total), boxX + boxW - 3, ty, { align: 'right' });
 
-        // --- LÓGICA DO ORÇAMENTO ---
-        function atualizarTotal(tipo) {
-            const tabelaId = `${tipo}-tabela`;
-            const totalEl = document.getElementById(`total-${tipo}`);
-            const linhas = document.getElementById(tabelaId).rows;
-            let total = 0;
-            const cellIndex = tipo === 'servicos' ? 4 : 3;
+        // Condições
+        let condY = finalY;
+        doc.setTextColor(15, 23, 42);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(9);
+        doc.text('CONDIÇÕES', margin, condY);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        doc.setTextColor(51, 65, 85);
+        doc.text(`Forma de pagamento: ${formaPagamento}`, margin, condY + 6);
+        doc.text(`Prazo: ${prazoEntrega}`, margin, condY + 11);
+        doc.text('Validade: 10 dias', margin, condY + 16);
 
-            for (let linha of linhas) {
-                if(linha.id.startsWith('mensagem-tabela-vazia')) continue;
-                const valorTexto = linha.cells[cellIndex].textContent;
-                const valorNumerico = parseFloat(valorTexto.replace('R$', '').replace(/\./g, '').replace(',', '.'));
-                if (!isNaN(valorNumerico)) {
-                    total += valorNumerico;
-                }
-            }
-            
-            if (totalEl) {
-                totalEl.textContent = formatarValorParaExibicao(total);
-            }
-        }
+        let obsY = Math.max(condY + 24, finalY + (desconto > 0 ? 36 : 28));
+        if (obsY > pageH - 45) { doc.addPage(); obsY = 20; }
 
-        function adicionarServico() {
-            const servicoSelect = document.getElementById('servico');
-            const quantidadeInput = document.getElementById('quantidade-servicos');
-            const valorInput = document.getElementById('valor-servicos');
-            
-            const quantidade = parseFloat(quantidadeInput.value);
-            const valor = parseFloat(valorInput.value);
-            const servicoId = servicoSelect.value;
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(9);
+        doc.setTextColor(15, 23, 42);
+        doc.text('OBSERVAÇÕES', margin, obsY);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        doc.setTextColor(51, 65, 85);
+        const splitObs = doc.splitTextToSize(observacoes || '—', pageW - margin * 2);
+        doc.text(splitObs, margin, obsY + 5);
 
-            if (servicoId === '' || isNaN(quantidade) || quantidade <= 0 || isNaN(valor) || valor < 0) {
-                showModal('Dados Inválidos', 'Por favor, selecione um serviço e preencha a quantidade e o valor com números válidos.', 'alert');
-                return;
-            }
-            
-            exibirMensagemTabelaVazia('servicos', false);
-            const tabelaBody = document.getElementById('servicos-tabela');
-            const novaLinha = tabelaBody.insertRow();
-            novaLinha.className = 'text-sm text-slate-800';
-            
-            const textoOpcao = servicoSelect.options[servicoSelect.selectedIndex].text;
-            const descricaoServico = textoOpcao.includes(' - ') ? textoOpcao.split(' - ')[1] : textoOpcao;
-            const total = quantidade * valor;
+        // Assinatura
+        let sigY = obsY + 5 + splitObs.length * 4 + 16;
+        if (sigY > pageH - 30) { doc.addPage(); sigY = 40; }
+        doc.setDrawColor(148, 163, 184);
+        doc.setLineWidth(0.3);
+        doc.line(margin + 20, sigY, margin + 90, sigY);
+        doc.line(pageW - margin - 90, sigY, pageW - margin - 20, sigY);
+        doc.setFontSize(7);
+        doc.setTextColor(100, 116, 139);
+        doc.text('Assinatura do responsável', margin + 55, sigY + 5, { align: 'center' });
+        doc.text('Assinatura do cliente', pageW - margin - 55, sigY + 5, { align: 'center' });
 
-            novaLinha.insertCell().outerHTML = `<td class="px-6 py-4 whitespace-nowrap">${servicoId}</td>`;
-            novaLinha.insertCell().outerHTML = `<td class="px-6 py-4 whitespace-nowrap">${descricaoServico}</td>`;
-            novaLinha.insertCell().outerHTML = `<td class="px-6 py-4 whitespace-nowrap">${quantidade}</td>`;
-            novaLinha.insertCell().outerHTML = `<td class="px-6 py-4 whitespace-nowrap">${formatarValorParaExibicao(valor)}</td>`;
-            novaLinha.insertCell().outerHTML = `<td class="px-6 py-4 whitespace-nowrap font-medium">${formatarValorParaExibicao(total)}</td>`;
-            
-            const cellAcao = novaLinha.insertCell();
-            cellAcao.className = 'px-6 py-4 whitespace-nowrap text-right';
-            const removeButton = document.createElement('button');
-            removeButton.className = 'text-red-600 hover:text-red-800 transition-colors';
-            removeButton.innerHTML = `<i data-lucide="trash-2" class="h-5 w-5"></i>`;
-            removeButton.onclick = function() { removerItem(this, 'servicos'); };
-            cellAcao.appendChild(removeButton);
-            
-            lucide.createIcons();
-            atualizarTotal('servicos');
-            
-            servicoSelect.value = '';
-            quantidadeInput.value = '1';
-            valorInput.value = '';
-        }
+        const nomeArquivo = `orcamento-${numero}-${cliente.split(' ')[0].toLowerCase().replace(/[^a-z0-9]/gi, '') || 'cliente'}.pdf`;
+        doc.save(nomeArquivo);
 
-        function adicionarProduto() {
-            const produtoInput = document.getElementById('produto');
-            const quantidadeInput = document.getElementById('quantidade-vendas');
-            const valorInput = document.getElementById('valor-vendas');
-            
-            const quantidade = parseFloat(quantidadeInput.value);
-            const valor = parseFloat(valorInput.value);
-            const produtoDesc = produtoInput.value;
+        // Auto-salva no histórico ao gerar PDF
+        const snap = snapshot(tipo);
+        snap.numero = numero;
+        const list = getHistorico();
+        const idx = list.findIndex(h => h.numero === numero && h.tipo === tipo);
+        if (idx >= 0) list[idx] = snap; else list.unshift(snap);
+        setHistorico(list);
+        renderHistorico();
+        salvarRascunhoAgora(tipo);
+        toast('PDF gerado! Novo orçamento liberado');
+        iniciarNovoOrcamento(tipo);
+    } catch (error) {
+        console.error(error);
+        showModal('Erro ao gerar PDF', 'Algo deu errado. Tente novamente. Se persistir, abra o console (F12).', 'alert');
+    }
+}
 
-            if (produtoDesc === '' || isNaN(quantidade) || quantidade <= 0 || isNaN(valor) || valor < 0) {
-                showModal('Dados Inválidos', 'Por favor, preencha a descrição, quantidade e valor com dados válidos.', 'alert');
-                return;
-            }
-            
-            exibirMensagemTabelaVazia('vendas', false);
-            const tabelaBody = document.getElementById('vendas-tabela');
-            const novaLinha = tabelaBody.insertRow();
-            novaLinha.className = 'text-sm text-slate-800';
+/* ---------- Init ---------- */
+window.onload = function () {
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('data-servicos').value = today;
+    document.getElementById('data-vendas').value = today;
 
-            const total = quantidade * valor;
+    carregarRascunhos();
+    renderHistorico();
 
-            novaLinha.insertCell().outerHTML = `<td class="px-6 py-4 whitespace-nowrap">${produtoDesc}</td>`;
-            novaLinha.insertCell().outerHTML = `<td class="px-6 py-4 whitespace-nowrap">${quantidade}</td>`;
-            novaLinha.insertCell().outerHTML = `<td class="px-6 py-4 whitespace-nowrap">${formatarValorParaExibicao(valor)}</td>`;
-            novaLinha.insertCell().outerHTML = `<td class="px-6 py-4 whitespace-nowrap font-medium">${formatarValorParaExibicao(total)}</td>`;
-            
-            const cellAcao = novaLinha.insertCell();
-            cellAcao.className = 'px-6 py-4 whitespace-nowrap text-right';
-            const removeButton = document.createElement('button');
-            removeButton.className = 'text-red-600 hover:text-red-800 transition-colors';
-            removeButton.innerHTML = `<i data-lucide="trash-2" class="h-5 w-5"></i>`;
-            removeButton.onclick = function() { removerItem(this, 'vendas'); };
-            cellAcao.appendChild(removeButton);
+    const abaSalva = localStorage.getItem(STORAGE.aba) || 'servicos';
+    openTab(abaSalva);
 
-            lucide.createIcons();
-            atualizarTotal('vendas');
+    ['servicos', 'vendas'].forEach(tipo => {
+        ['cliente', 'data', 'cnpjcpf', 'telefone', 'formaPagamento', 'prazoEntrega', 'observacoes', 'desconto'].forEach(campo => {
+            const el = document.getElementById(`${campo}-${tipo}`);
+            if (!el) return;
+            el.addEventListener('input', agendarSalvarRascunho);
+            el.addEventListener('change', agendarSalvarRascunho);
+        });
+    });
 
-            produtoInput.value = '';
-            quantidadeInput.value = '1';
-            valorInput.value = '';
-        }
-        
-        function removerItem(button, tipo) {
-            const tabelaBody = document.getElementById(`${tipo}-tabela`);
-            const linha = button.closest('tr');
-            linha.remove();
-            if (tabelaBody.rows.length === 0) {
-                exibirMensagemTabelaVazia(tipo, true);
-            }
-            atualizarTotal(tipo);
-        }
+    ['valor-servicos', 'valor-vendas', 'desconto-servicos', 'desconto-vendas'].forEach(id => {
+        const el = document.getElementById(id);
+        el.addEventListener('input', () => aplicarMascaraMoeda(el));
+        if (el.value) el.value = formatarMoedaDigitando(el.value) || (id.startsWith('desconto') ? '0,00' : '');
+    });
 
-        function limparFormulario(tipo) {
-            showModal('Confirmar Ação', 'Tem certeza que deseja limpar todos os campos e itens deste orçamento?', 'confirm', () => {
-                document.getElementById(`cliente-${tipo}`).value = '';
-                document.getElementById(`data-${tipo}`).value = new Date().toISOString().split('T')[0];
-                document.getElementById(`cnpjcpf-${tipo}`).value = '';
-                document.getElementById(`telefone-${tipo}`).value = '';
-                document.getElementById(`${tipo}-tabela`).innerHTML = '';
-                exibirMensagemTabelaVazia(tipo, true);
-                document.getElementById(`formaPagamento-${tipo}`).value = '';
-                document.getElementById(`prazoEntrega-${tipo}`).value = '';
-                if(tipo === 'servicos') {
-                    document.getElementById('observacoes-servicos').value = 'Este orçamento não inclui serviço de dreno, parte elétrica e alvenaria.\n\nEste orçamento tem validade de 10 dias. Após este período, favor consulte-nos novamente.';
-                } else {
-                    document.getElementById('observacoes-vendas').value = 'Validade: 15 dias. Após este período, consulte-nos novamente.';
-                }
-                atualizarTotal(tipo);
-            });
-        }
+    // Enter adiciona item
+    document.getElementById('valor-servicos').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); adicionarServico(); } });
+    document.getElementById('valor-vendas').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); adicionarProduto(); } });
+    document.getElementById('produto').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); document.getElementById('valor-vendas').focus(); } });
 
-        // --- GERAÇÃO DE PDF ---
-        function gerarPDF(tipo) {
-            try {
-                const { jsPDF } = window.jspdf;
-                const doc = new jsPDF();
+    lucide.createIcons();
+};
 
-                const tabelaId = `${tipo}-tabela`;
-                if (document.getElementById(tabelaId).rows.length === 0 || (document.getElementById(tabelaId).rows.length === 1 && document.getElementById(tabelaId).rows[0].id.startsWith('mensagem-tabela-vazia'))) {
-                    showModal('Orçamento Vazio', 'É necessário adicionar pelo menos um serviço ou produto antes de gerar o PDF.', 'alert');
-                    return;
-                }
-                
-                const data = document.getElementById(`data-${tipo}`).value;
-                const cliente = document.getElementById(`cliente-${tipo}`).value || 'Não informado';
-                const formaPagamento = document.getElementById(`formaPagamento-${tipo}`).value || 'Não informado';
-                const prazoEntrega = document.getElementById(`prazoEntrega-${tipo}`).value || 'Não informado';
-                
-                doc.setFont('helvetica', 'bold');
-                doc.setFontSize(18);
-                doc.text("RJ AR CONDICIONADO LTDA", 105, 20, { align: "center" });
-                doc.setFont('helvetica', 'normal');
-                doc.setFontSize(9);
-                doc.text("CNPJ: 55.266.053/0001-40 | IE: 004901323.00-24", 105, 26, { align: "center" });
-                doc.text("Rua João Lourenço Gomide - Centro - Pains-MG", 105, 30, { align: "center" });
-                doc.text("Tel: (37) 99876-6121 | Email: rjarcondicionado86@hotmail.com", 105, 34, { align: "center" });
-                doc.setLineWidth(0.5);
-                doc.line(14, 42, 196, 42);
-
-                doc.setFontSize(14);
-                doc.setFont('helvetica', 'bold');
-                doc.text("Orçamento", 14, 52);
-                doc.setFontSize(10);
-                doc.setFont('helvetica', 'normal');
-                const dataFormatada = data ? new Date(data + 'T00:00:00').toLocaleDateString('pt-BR') : 'Não informada';
-                doc.text(`Data: ${dataFormatada}`, 196, 52, { align: 'right' });
-                
-                let infoY = 60;
-                doc.setFont('helvetica', 'bold');
-                doc.text("Cliente:", 14, infoY);
-                doc.setFont('helvetica', 'normal');
-                doc.text(cliente, 32, infoY);
-
-                const cnpjcpf = document.getElementById(`cnpjcpf-${tipo}`).value;
-                if (cnpjcpf) {
-                    infoY += 5;
-                    doc.text("CNPJ/CPF:", 14, infoY, {fontStyle: 'bold'});
-                    doc.text(cnpjcpf, 36, infoY, {fontStyle: 'normal'});
-                }
-                const telefone = document.getElementById(`telefone-${tipo}`).value;
-                if (telefone) {
-                    infoY += 5;
-                    doc.text("Telefone:", 14, infoY, {fontStyle: 'bold'});
-                    doc.text(telefone, 34, infoY, {fontStyle: 'normal'});
-                }
-                
-                const head = tipo === 'servicos' 
-                    ? [['Código', 'Descrição', 'Qtd', 'Valor', 'Total']]
-                    : [['Descrição', 'Qtd', 'Valor Unit.', 'Total']];
-                
-                const body = Array.from(document.getElementById(tabelaId).rows).map(row => 
-                    Array.from(row.cells).slice(0, -1).map(cell => cell.textContent)
-                );
-
-                doc.autoTable({
-                    startY: infoY + 10,
-                    head: head,
-                    body: body,
-                    theme: 'grid',
-                    headStyles: { fillColor: [16, 185, 129] }, // Emerald
-                    styles: { font: 'helvetica', fontSize: 9 },
-                    didDrawPage: function (data) {
-                        // Footer
-                        const pageCount = doc.internal.getNumberOfPages();
-                        doc.setFontSize(8);
-                        doc.setTextColor(150);
-                        doc.text(`Página ${data.pageNumber} de ${pageCount}`, data.settings.margin.left, doc.internal.pageSize.height - 10);
-                        doc.text("RJ AR CONDICIONADO LTDA", doc.internal.pageSize.width - data.settings.margin.right, doc.internal.pageSize.height - 10, { align: 'right' });
-                    }
-                });
-                
-                let finalY = doc.autoTable.previous.finalY;
-                const totalString = document.getElementById(`total-${tipo}`).textContent;
-                doc.setFontSize(12);
-                doc.setFont('helvetica', 'bold');
-                doc.text(totalString, 196, finalY + 10, { align: 'right' });
-
-                let finalDetailsY = finalY + 20;
-                if (finalDetailsY > doc.internal.pageSize.height - 40) {
-                    doc.addPage();
-                    finalDetailsY = 20;
-                }
-                
-                const observacoes = document.getElementById(`observacoes-${tipo}`).value;
-                doc.setFontSize(10);
-                doc.setFont('helvetica', 'bold');
-                doc.text("Condições:", 14, finalDetailsY);
-                doc.setFont('helvetica', 'normal');
-                doc.text(`Forma de Pagamento: ${formaPagamento}`, 14, finalDetailsY + 5);
-                doc.text(`Prazo: ${prazoEntrega}`, 14, finalDetailsY + 10);
-                doc.setFont('helvetica', 'bold');
-                doc.text("Observações:", 14, finalDetailsY + 20);
-                doc.setFont('helvetica', 'normal');
-                const splitObs = doc.splitTextToSize(observacoes, 182);
-                doc.text(splitObs, 14, finalDetailsY + 25);
-
-                const nomeArquivo = `orcamento-${tipo}-${cliente.split(' ')[0].toLowerCase() || 'geral'}.pdf`;
-                doc.save(nomeArquivo);
-
-            } catch (error) {
-                console.error("Erro ao gerar PDF:", error);
-                showModal('Erro Inesperado', 'Ocorreu um erro ao tentar gerar o PDF. Verifique o console para mais detalhes (F12).', 'alert');
-            }
-        }
-
-        // --- EVENT LISTENERS ---
-        window.onload = function() {
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('data-servicos').value = today;
-            document.getElementById('data-vendas').value = today;
-
-            exibirMensagemTabelaVazia('servicos', true);
-            exibirMensagemTabelaVazia('vendas', true);
-
-            document.getElementById('cnpjcpf-servicos').addEventListener('input', (e) => e.target.value = formatarDocumento(e.target.value));
-            document.getElementById('cnpjcpf-vendas').addEventListener('input', (e) => e.target.value = formatarDocumento(e.target.value));
-            document.getElementById('telefone-servicos').addEventListener('input', (e) => e.target.value = formatarTelefone(e.target.value));
-            document.getElementById('telefone-vendas').addEventListener('input', (e) => e.target.value = formatarTelefone(e.target.value));
-        };
-    </script>
+window.addEventListener('beforeunload', () => {
+    salvarRascunhoAgora(abaAtual);
+});
+</script>
 </body>
 </html>
